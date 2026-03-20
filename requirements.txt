@@ -1,0 +1,13 @@
+torch>=2.0
+torch-geometric
+lightgbm
+scikit-learn
+scipy
+pandas
+numpy
+networkx
+sentence-transformers
+requests
+tqdm
+matplotlib
+seaborn
