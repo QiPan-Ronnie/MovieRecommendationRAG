@@ -30,7 +30,11 @@ def run_phase0(skip_tmdb=False):
     if not skip_tmdb:
         print("\n[0.2] Fetching TMDB metadata...")
         print("  (This will use cached results via checkpoint/resume)")
-        api_key = os.environ.get("TMDB_API_KEY", "991945fb795a7c42c39c0a2f6d67a702")
+        api_key = os.environ.get("TMDB_API_KEY")
+        if not api_key:
+            print("ERROR: TMDB_API_KEY environment variable not set.")
+            print("  Set it with: export TMDB_API_KEY=your_key_here")
+            sys.exit(1)
         subprocess.run([
             sys.executable, "src/data_prep/fetch_tmdb.py",
             "--api_key", api_key,
@@ -60,7 +64,11 @@ def run_phase2():
     from src.kg.build_kg import main as kg_main
     kg_main()
 
-    print("\n[2.2] Computing KG features...")
+    print("\n[2.2] Computing content similarity (Sentence-Transformer)...")
+    from src.kg.content_similarity import main as content_sim_main
+    content_sim_main()
+
+    print("\n[2.3] Computing KG features...")
     from src.kg.kg_features import main as kg_feat_main
     kg_feat_main()
 

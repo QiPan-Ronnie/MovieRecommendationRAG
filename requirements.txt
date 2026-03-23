@@ -1,5 +1,4 @@
 torch>=2.0
-torch-geometric
 lightgbm
 scikit-learn
 scipy

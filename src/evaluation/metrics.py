@@ -1,5 +1,6 @@
 """
 Unified evaluation metrics for recommendation models.
+Supports multiple K values (e.g., @1, @5, @10).
 """
 import numpy as np
 from collections import defaultdict
@@ -15,9 +16,8 @@ def ndcg_at_k(ranked_list, ground_truth, k=10):
     dcg = 0.0
     for i, item in enumerate(ranked_list[:k]):
         if item in ground_truth:
-            dcg += 1.0 / np.log2(i + 2)  # i+2 because log2(1)=0
+            dcg += 1.0 / np.log2(i + 2)
 
-    # Ideal DCG
     n_relevant = min(len(ground_truth), k)
     idcg = sum(1.0 / np.log2(i + 2) for i in range(n_relevant))
 
@@ -32,9 +32,10 @@ def recall_at_k(ranked_list, ground_truth, k=10):
     return hits / len(ground_truth)
 
 
-def mrr(ranked_list, ground_truth):
-    """Mean Reciprocal Rank: 1/rank of the first relevant item."""
-    for i, item in enumerate(ranked_list):
+def mrr(ranked_list, ground_truth, k=None):
+    """Mean Reciprocal Rank: 1/rank of the first relevant item within top-k."""
+    cutoff = k if k is not None else len(ranked_list)
+    for i, item in enumerate(ranked_list[:cutoff]):
         if item in ground_truth:
             return 1.0 / (i + 1)
     return 0.0
@@ -48,21 +49,31 @@ def coverage(all_recommendations, total_items):
     return len(recommended) / total_items if total_items > 0 else 0.0
 
 
-def evaluate_all(predictions, ground_truth, k=10, total_items=None):
+def evaluate_all(predictions, ground_truth, k=10, total_items=None, ks=None):
     """
-    Evaluate all metrics.
+    Evaluate all metrics at one or more K values.
 
     Args:
         predictions: dict[user_id] -> list of movie_ids (ranked by score, descending)
         ground_truth: dict[user_id] -> set of movie_ids (positive items in test)
-        k: cutoff
+        k: primary cutoff (used for per_user_ndcg and coverage)
         total_items: total number of items (for coverage)
+        ks: list of K values to evaluate (e.g., [1, 5, 10]).
+            If None, defaults to [k].
 
     Returns:
-        dict of metric_name -> value
-        dict of user_id -> per-user NDCG (for statistical tests)
+        dict of metric_name -> value (includes all K values)
+        dict of user_id -> per-user NDCG at primary k (for statistical tests)
     """
-    hits, ndcgs, recalls, mrrs = [], [], [], []
+    if ks is None:
+        ks = [k]
+    # Ensure primary k is included
+    if k not in ks:
+        ks.append(k)
+    ks = sorted(set(ks))
+
+    # Per-K accumulators
+    per_k = {kv: {"hits": [], "ndcgs": [], "recalls": [], "mrrs": []} for kv in ks}
     per_user_ndcg = {}
     all_recs = []
 
@@ -74,20 +85,22 @@ def evaluate_all(predictions, ground_truth, k=10, total_items=None):
         if len(gt) == 0:
             continue
 
-        hits.append(hit_at_k(pred, gt, k))
-        ndcg_val = ndcg_at_k(pred, gt, k)
-        ndcgs.append(ndcg_val)
-        per_user_ndcg[uid] = ndcg_val
-        recalls.append(recall_at_k(pred, gt, k))
-        mrrs.append(mrr(pred, gt))
+        for kv in ks:
+            per_k[kv]["hits"].append(hit_at_k(pred, gt, kv))
+            per_k[kv]["ndcgs"].append(ndcg_at_k(pred, gt, kv))
+            per_k[kv]["recalls"].append(recall_at_k(pred, gt, kv))
+            per_k[kv]["mrrs"].append(mrr(pred, gt, kv))
+
+        # Per-user NDCG at primary k
+        per_user_ndcg[uid] = ndcg_at_k(pred, gt, k)
         all_recs.append(pred[:k])
 
-    results = {
-        f"Hit@{k}": np.mean(hits),
-        f"NDCG@{k}": np.mean(ndcgs),
-        f"Recall@{k}": np.mean(recalls),
-        "MRR": np.mean(mrrs),
-    }
+    results = {}
+    for kv in ks:
+        results[f"Hit@{kv}"] = np.mean(per_k[kv]["hits"])
+        results[f"NDCG@{kv}"] = np.mean(per_k[kv]["ndcgs"])
+        results[f"Recall@{kv}"] = np.mean(per_k[kv]["recalls"])
+        results[f"MRR@{kv}"] = np.mean(per_k[kv]["mrrs"])
 
     if total_items is not None:
         results["Coverage"] = coverage(all_recs, total_items)
@@ -96,7 +109,7 @@ def evaluate_all(predictions, ground_truth, k=10, total_items=None):
 
 
 def print_results(results, model_name="Model"):
-    """Pretty print evaluation results."""
+    """Pretty print evaluation results, grouped by K."""
     print(f"\n{'='*50}")
     print(f"  {model_name} Results")
     print(f"{'='*50}")

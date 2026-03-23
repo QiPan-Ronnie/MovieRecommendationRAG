@@ -1,16 +1,16 @@
 """
 Item-based Collaborative Filtering.
+Trains on train set, uses validation for sanity checks,
+evaluates on test set over full catalog.
 """
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
 from collections import defaultdict
-import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from evaluation.metrics import evaluate_all, print_results
+from src.evaluation.metrics import evaluate_all, print_results
 
 
 def build_interaction_matrix(train_df, user2idx, movie2idx):
@@ -22,29 +22,22 @@ def build_interaction_matrix(train_df, user2idx, movie2idx):
     return matrix
 
 
-def train_item_cf(train_df, top_k_sim=50):
+def train_item_cf(train_df):
     """
-    Train Item-CF model.
-    Returns: item similarity matrix (sparse, top-k per item).
+    Train Item-CF model using training data only.
+    Returns model dict with similarity matrix and mappings.
     """
-    # Build mappings
     all_users = sorted(train_df["user_id"].unique())
     all_movies = sorted(train_df["movie_id"].unique())
     user2idx = {u: i for i, u in enumerate(all_users)}
     movie2idx = {m: i for i, m in enumerate(all_movies)}
     idx2movie = {i: m for m, i in movie2idx.items()}
 
-    # Build interaction matrix (users x items)
     ui_matrix = build_interaction_matrix(train_df, user2idx, movie2idx)
 
-    # Compute item-item cosine similarity (items x items)
     print("Computing item-item similarity...")
-    item_matrix = ui_matrix.T  # items x users
+    item_matrix = ui_matrix.T
     sim_matrix = cosine_similarity(item_matrix, dense_output=False)
-
-    # For efficiency, keep only top-k similar items per item
-    print(f"Keeping top-{top_k_sim} similar items per item...")
-    n_items = sim_matrix.shape[0]
 
     return {
         "sim_matrix": sim_matrix,
@@ -58,7 +51,7 @@ def train_item_cf(train_df, top_k_sim=50):
 
 def predict_item_cf(model, user_id, train_user_items, n_candidates=100):
     """
-    Predict scores for all items for a given user.
+    Predict scores for all non-train items for a given user.
     Returns: list of (movie_id, score) sorted by score descending.
     """
     user2idx = model["user2idx"]
@@ -69,28 +62,25 @@ def predict_item_cf(model, user_id, train_user_items, n_candidates=100):
     if user_id not in user2idx:
         return []
 
-    # Get user's interacted item indices
     interacted_indices = [movie2idx[m] for m in train_user_items if m in movie2idx]
     if not interacted_indices:
         return []
 
-    # Score each candidate item
     scores = {}
     interacted_set = set(interacted_indices)
 
     for item_idx in range(sim_matrix.shape[0]):
         if item_idx in interacted_set:
             continue
-        # Score = sum of similarities with user's interacted items
         sim_scores = sim_matrix[item_idx, interacted_indices].toarray().flatten()
         scores[item_idx] = np.sum(sim_scores)
 
-    # Sort by score
     ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:n_candidates]
     return [(idx2movie[idx], score) for idx, score in ranked]
 
 
-def run_item_cf(train_path="data/processed/train.csv", test_path="data/processed/test.csv",
+def run_item_cf(train_path="data/processed/train.csv",
+                test_path="data/processed/test.csv",
                 output_path="results/cf_scores.csv", k=10):
     """Run full Item-CF pipeline."""
     train_df = pd.read_csv(train_path)
@@ -99,12 +89,12 @@ def run_item_cf(train_path="data/processed/train.csv", test_path="data/processed
     print("Training Item-CF...")
     model = train_item_cf(train_df)
 
-    # Build user -> train items mapping
+    # User history from training set only
     train_user_items = defaultdict(set)
     for _, row in train_df.iterrows():
         train_user_items[row["user_id"]].add(row["movie_id"])
 
-    # Build ground truth
+    # Ground truth from test set
     ground_truth = defaultdict(set)
     for _, row in test_df.iterrows():
         ground_truth[row["user_id"]].add(row["movie_id"])
@@ -123,7 +113,7 @@ def run_item_cf(train_path="data/processed/train.csv", test_path="data/processed
         for movie_id, score in ranked:
             all_scores.append({"user_id": uid, "movie_id": movie_id, "cf_score": score})
 
-    # Save scores
+    # Save scores (these will be used by the ranker)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     scores_df = pd.DataFrame(all_scores)
     scores_df.to_csv(output_path, index=False)
@@ -131,7 +121,7 @@ def run_item_cf(train_path="data/processed/train.csv", test_path="data/processed
 
     # Evaluate
     total_items = len(model["all_movies"])
-    results, per_user_ndcg = evaluate_all(predictions, ground_truth, k=k, total_items=total_items)
+    results, per_user_ndcg = evaluate_all(predictions, ground_truth, k=k, total_items=total_items, ks=[1, 5, 10])
     print_results(results, "Item-CF")
 
     return results, per_user_ndcg
