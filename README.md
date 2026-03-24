@@ -1,80 +1,74 @@
-# KG-Enhanced Movie Recommendation
+# KG-RAG Enhanced Movie Recommendation
 
-> Do Knowledge Graphs and Retrieval-Augmented Generation Improve Recommendation Performance and Explanation Faithfulness?
+> Investigating whether Knowledge Graphs and Retrieval-Augmented Generation improve recommendation accuracy and explanation faithfulness.
 
-This project investigates whether combining Knowledge Graph (KG)-enhanced re-ranking with collaborative filtering baselines yields measurable improvements in recommendation accuracy, particularly for long-tail items.
+## Experiment Goals
 
-## Research Questions
+This project builds a two-stage (recall + re-rank) movie recommendation system on MovieLens 1M, enhanced by Knowledge Graph (KG) features and RAG-based explanations. We address four research questions in two phases:
 
-| ID | Question |
-|----|----------|
-| RQ1 | Does KG-enhanced re-ranking significantly outperform CF and content-based baselines? |
-| RQ2 | Does KG provide disproportionate benefit for long-tail items? |
-| RQ3 | Are RAG-generated explanations more faithful than prompt-only explanations? (Phase 2) |
-| RQ4 | Are structured (KG) and unstructured (RAG) knowledge complementary? (Phase 2) |
+**Phase 1 — KG-Enhanced Recommendation (Complete)**
+- **RQ1**: Does KG-enhanced re-ranking significantly outperform CF and content baselines?
+- **RQ2**: Does KG disproportionately benefit long-tail items?
 
-## Architecture
+**Phase 2 — RAG-Based Explanation (Planned)**
+- **RQ3**: Are RAG-generated explanations more faithful than prompt-only LLM explanations?
+- **RQ4**: Are structured (KG) and unstructured (RAG) knowledge complementary for explainability?
 
-Two-stage **recall + re-rank** pipeline:
+## Key Results (Phase 1)
 
-```
-[Stage 1: Recall]   Item-CF / BPR-MF / LightGCN  -->  top-100 candidates
-[Stage 2: Re-rank]  LightGBM ranker (CF + Content + KG features)  -->  top-10
-[Stage 3: Explain]  RAG module (Phase 2)
-```
+| Finding | Result |
+|---------|--------|
+| **RQ1**: KG vs CF baseline | V3 vs V2: p=0.0007 (Pointwise), p=0.007 (LambdaMART) |
+| **RQ1**: Best Recall@10 | V3 LambdaMART: **0.1982** (vs Recall-only 0.1835, +8%) |
+| **RQ2**: Tail lift vs head lift | **3.6x** (V3) to **7.9x** (V4) higher for tail items |
+| **RQ2**: Low-entropy user lift | **+51%** Recall@10 (vs +3% for high-entropy users) |
+| KG feature importance share | **24.8%** of total LightGBM gain |
 
-### Ablation Variants
+See [`results/RESULTS.md`](results/RESULTS.md) for full experimental results.
 
-| Variant | Features |
-|---------|----------|
-| V1 | CF score only |
-| V2 | CF score + content similarity + popularity |
-| V3 | CF score + content similarity + popularity + KG features |
-
-Both **Pointwise** (binary classification) and **LambdaMART** (listwise NDCG optimization) ranking objectives are compared.
-
-## Dataset
-
-- **MovieLens 1M**: ~6,040 users, ~3,900 movies, ~1M ratings
-- **TMDB API**: genres, actors, directors, overviews, vote counts
-- **Knowledge Graph**: constructed from TMDB metadata (has_genre, acted_by, directed_by)
-
-## Setup
-
-### 1. Create Virtual Environment
+## Quick Start
 
 ```bash
-python -m venv movie_env
-source movie_env/bin/activate      # Linux / macOS
-# movie_env\Scripts\activate       # Windows
-```
-
-### 2. Install Dependencies
-
-```bash
+# 1. Environment
+python -m venv movie_env && source movie_env/bin/activate
 pip install -r requirements.txt
+
+# 2. Data: download ML-1M to data/raw/ml-1m/, set TMDB key
+export TMDB_API_KEY=your_key_here
+
+# 3. Run full pipeline
+python run_all.py
+
+# 4. Or run individual phases
+python run_all.py --phase 0    # Data prep
+python run_all.py --phase 1    # Recall baselines
+python run_all.py --phase 2    # KG + multi-recall + features
+python run_all.py --phase 3    # Ranker ablation
+python run_all.py --phase 4    # Long-tail analysis
 ```
 
-### 3. Data Preparation
+## Pipeline Architecture
 
-1. Download [MovieLens 1M](https://grouplens.org/datasets/movielens/1m/) and extract to `data/raw/ml-1m/`
-2. Set your TMDB API key:
-   ```bash
-   export TMDB_API_KEY=your_key_here
-   ```
-3. Run the full pipeline:
-   ```bash
-   python run_all.py
-   ```
+```
+[Phase 0] Data Preparation
+    Parse ML-1M, filter rating >= 4, time-based split (70/10/20)
 
-   Or run individual phases:
-   ```bash
-   python run_all.py --phase 0              # Data preparation
-   python run_all.py --phase 1              # Baseline models
-   python run_all.py --phase 2              # KG construction + features
-   python run_all.py --phase 3              # Ranker ablation
-   python run_all.py --skip-tmdb            # Skip TMDB fetch (use cached)
-   ```
+[Phase 1] Recall Baselines
+    Item-CF / BPR-MF / LightGCN -> top-100 candidates per user
+
+[Phase 2] KG + Multi-Route Recall + Features
+    Build KG (134K triples: co_liked, genre, actor, director, decade)
+    Train TransE embeddings (128-dim, 5 relations)
+    Multi-route recall: CF top-70 + KG top-50 -> 100 candidates
+    Features: content similarity, KG (raw + IDF), KG embeddings
+
+[Phase 3] Ranker Ablation
+    V1 (CF) -> V2 (+Content) -> V3 (+KG) -> V3e (+KGEmb) -> V4 (+All)
+    Pointwise + LambdaMART, statistical significance tests
+
+[Phase 4] Long-tail Analysis (RQ2)
+    Head/tail stratified Recall@10, user genre entropy analysis
+```
 
 ## Project Structure
 
@@ -82,51 +76,29 @@ pip install -r requirements.txt
 MovieRecommendation/
 ├── src/
 │   ├── data_prep/
-│   │   ├── parse_ml1m.py          # ML-1M parsing, filtering, splitting
-│   │   └── fetch_tmdb.py          # TMDB metadata fetching with checkpoint/resume
+│   │   ├── parse_ml1m.py            # ML-1M parsing, filtering, 3-way split
+│   │   └── fetch_tmdb.py            # TMDB metadata fetch (checkpoint/resume)
 │   ├── models/
-│   │   ├── item_cf.py             # Item-based Collaborative Filtering
-│   │   ├── matrix_factorization.py # BPR Matrix Factorization (PyTorch)
-│   │   └── lightgcn.py            # LightGCN (PyTorch, custom implementation)
+│   │   ├── item_cf.py               # Item-based Collaborative Filtering
+│   │   ├── matrix_factorization.py  # BPR Matrix Factorization (PyTorch)
+│   │   ├── lightgcn.py              # LightGCN (PyTorch)
+│   │   └── multi_recall.py          # Multi-route recall: CF + KG candidates
 │   ├── kg/
-│   │   ├── build_kg.py            # KG triple construction from TMDB
-│   │   ├── kg_features.py         # KG feature engineering per (user, item) pair
-│   │   └── content_similarity.py  # Sentence-Transformer content similarity
+│   │   ├── build_kg.py              # KG construction (metadata + collaborative edges)
+│   │   ├── transe.py                # TransE embedding training (PyTorch)
+│   │   ├── kg_features.py           # Hand-crafted KG features (IDF-weighted)
+│   │   ├── kg_embedding_features.py # TransE embedding-based features
+│   │   └── content_similarity.py    # Sentence-Transformer content similarity
 │   ├── ranker/
-│   │   └── ranker.py              # LightGBM ranker (Pointwise + LambdaMART)
+│   │   └── ranker.py                # LightGBM ranker (Pointwise + LambdaMART)
 │   ├── evaluation/
-│   │   └── metrics.py             # Hit@K, NDCG@K, Recall@K, MRR, Coverage
-│   └── run_baselines.py           # Run all baseline models
-├── app.py                         # Streamlit demo interface
-├── run_all.py                     # End-to-end pipeline orchestrator
-├── experiment_plan.md             # Detailed experiment design
-├── PROJECT_OVERVIEW.md            # Full project description
-├── REFLECTION.md                  # Consistency and rigor audit
+│   │   ├── metrics.py               # Hit@K, NDCG@K, Recall@K, MRR, Coverage
+│   │   └── longtail_analysis.py     # RQ2: head/tail stratified evaluation
+│   └── run_baselines.py             # Baseline model orchestrator
+├── results/
+│   └── RESULTS.md                   # Experiment results and analysis
+├── app.py                           # Streamlit interactive demo
+├── run_all.py                       # End-to-end pipeline (Phase 0-4)
+├── PROJECT_OVERVIEW.md              # Research design document
 └── requirements.txt
 ```
-
-## Evaluation
-
-- **Metrics**: Hit@K, NDCG@K, Recall@K, MRR, Coverage (K = 1, 5, 10)
-- **Statistical significance**: Paired t-test on per-user NDCG@10 (p < 0.05)
-- **Data split**: Per-user time-based 70/10/20 (train/val/test)
-- **Positive threshold**: Only ratings >= 4 count as positive interactions
-
-## Interactive Demo
-
-```bash
-streamlit run app.py
-```
-
-Features: KG subgraph explorer, recommendation comparison across models, KG-based explanations, experiment dashboard.
-
-## Technical Stack
-
-| Component | Technology |
-|-----------|-----------|
-| Deep Learning | PyTorch |
-| Ranker | LightGBM |
-| Knowledge Graph | NetworkX |
-| Text Embeddings | Sentence-Transformers |
-| Evaluation | scikit-learn, SciPy |
-| Demo | Streamlit |

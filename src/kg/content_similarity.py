@@ -151,6 +151,7 @@ def main():
         ("data/processed/train_with_neg.csv", "data/processed/content_sim_train.csv"),
         ("data/processed/val_with_neg.csv", "data/processed/content_sim_val.csv"),
         ("data/processed/test_with_neg.csv", "data/processed/content_sim_test.csv"),
+        ("data/processed/test_recall_candidates.csv", "data/processed/content_sim_test_recall.csv"),
     ]
 
     for split_path, output_path in splits:

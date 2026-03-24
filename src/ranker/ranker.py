@@ -6,8 +6,9 @@ Supports two ranking objectives:
   - Pointwise (binary classification): treats each (user, item) independently
   - LambdaMART (listwise): optimizes NDCG directly over per-user ranked lists
 
-Evaluation protocol:
-  - Train on training set candidates, tune on validation, evaluate on test
+Evaluation protocol (Option C):
+  - Train on training set candidates (random negatives), tune on validation
+  - Evaluate on recall model's top-100 candidates per user (realistic re-ranking)
   - All features computed from training data only (no leakage)
 """
 import os
@@ -28,11 +29,16 @@ from src.evaluation.metrics import evaluate_all, print_results
 # ---------------------------------------------------------------------------
 
 def load_recall_scores(scores_path):
-    """Load recall model scores (user_id, movie_id, score)."""
+    """Load recall model scores (user_id, movie_id, cf_score, kg_recall_score)."""
     df = pd.read_csv(scores_path)
-    score_cols = [c for c in df.columns if c not in ["user_id", "movie_id"]]
-    df = df.rename(columns={score_cols[0]: "cf_score"})
-    return df[["user_id", "movie_id", "cf_score"]]
+    # Handle both old format (cf_score only) and new format (cf_score + kg_recall_score)
+    if "cf_score" not in df.columns:
+        score_cols = [c for c in df.columns if c not in ["user_id", "movie_id", "kg_recall_score"]]
+        if score_cols:
+            df = df.rename(columns={score_cols[0]: "cf_score"})
+    if "kg_recall_score" not in df.columns:
+        df["kg_recall_score"] = 0.0
+    return df[["user_id", "movie_id", "cf_score", "kg_recall_score"]]
 
 
 def compute_popularity_from_train(train_path="data/processed/train.csv"):
@@ -61,16 +67,19 @@ def load_tmdb_features(tmdb_path="data/tmdb/tmdb_metadata.csv"):
 
 
 def build_feature_df(candidates_with_labels, cf_scores_df, kg_features_df,
-                     content_sim_df, popularity_df, tmdb_df):
+                     content_sim_df, popularity_df, tmdb_df,
+                     kg_emb_features_df=None):
     """Merge all features into a single DataFrame for a given split."""
     merged = candidates_with_labels.copy()
 
-    # CF scores
+    # CF scores + KG recall score
     if cf_scores_df is not None:
         merged = merged.merge(cf_scores_df, on=["user_id", "movie_id"], how="left")
         merged["cf_score"] = merged["cf_score"].fillna(0)
+        merged["kg_recall_score"] = merged["kg_recall_score"].fillna(0)
     else:
         merged["cf_score"] = 0
+        merged["kg_recall_score"] = 0
 
     # Popularity (from training set)
     if popularity_df is not None:
@@ -96,7 +105,7 @@ def build_feature_df(candidates_with_labels, cf_scores_df, kg_features_df,
     else:
         merged["vote_count"] = 0
 
-    # KG features
+    # KG features (hand-crafted)
     kg_cols = []
     if kg_features_df is not None:
         merged = merged.merge(kg_features_df, on=["user_id", "movie_id"], how="left")
@@ -104,24 +113,138 @@ def build_feature_df(candidates_with_labels, cf_scores_df, kg_features_df,
         for col in kg_cols:
             merged[col] = merged[col].fillna(0)
 
-    return merged, kg_cols
+    # KG embedding features
+    kg_emb_cols = []
+    if kg_emb_features_df is not None:
+        merged = merged.merge(kg_emb_features_df, on=["user_id", "movie_id"], how="left")
+        kg_emb_cols = [c for c in kg_emb_features_df.columns if c.startswith("kg_emb_")]
+        for col in kg_emb_cols:
+            merged[col] = merged[col].fillna(0)
+
+    return merged, kg_cols, kg_emb_cols
+
+
+# ---------------------------------------------------------------------------
+# Build recall test candidates (Option C)
+# ---------------------------------------------------------------------------
+
+def build_recall_test_candidates(
+    cf_scores_path="results/cf_scores.csv",
+    test_path="data/processed/test.csv",
+    output_path="data/processed/test_recall_candidates.csv",
+):
+    """
+    Build test candidate pool from recall model's top-100 candidates.
+
+    Instead of evaluating on randomly-sampled negatives (which inflates metrics
+    and makes cf_score trivially dominant), we evaluate on the recall model's
+    actual top-100 candidates — the realistic re-ranking scenario.
+
+    Label = 1 if the movie appears in the user's test positive items, else 0.
+    """
+    cf_scores = pd.read_csv(cf_scores_path)
+    test_df = pd.read_csv(test_path)
+
+    # Build test ground truth: user -> set of positive movie_ids
+    test_positives = test_df.groupby("user_id")["movie_id"].apply(set).to_dict()
+
+    # Label recall candidates
+    cf_scores["label"] = cf_scores.apply(
+        lambda r: 1 if r["movie_id"] in test_positives.get(r["user_id"], set()) else 0,
+        axis=1
+    )
+
+    # Save (user_id, movie_id, label) — cf_score merged later via build_feature_df
+    result = cf_scores[["user_id", "movie_id", "label"]]
+    result.to_csv(output_path, index=False)
+
+    n_pos = (result["label"] == 1).sum()
+    n_neg = (result["label"] == 0).sum()
+    n_users = result["user_id"].nunique()
+    print(f"Recall test candidates: {len(result)} rows")
+    print(f"  Positive: {n_pos}, Negative: {n_neg}")
+    print(f"  Positive rate: {n_pos / len(result) * 100:.1f}%")
+    print(f"  Users: {n_users}, Candidates/user: {len(result) / n_users:.0f}")
+
+    return result
+
+
+def build_recall_train_val_candidates(
+    cf_scores_path="results/cf_scores.csv",
+    val_path="data/processed/val.csv",
+    train_output="data/processed/train_recall_candidates.csv",
+    val_output="data/processed/val_recall_candidates.csv",
+    val_user_ratio=0.2,
+    seed=42,
+):
+    """
+    Build ranker training and validation data from recall candidates.
+
+    Key insight: training the ranker on random negatives teaches it shortcuts
+    (e.g., "high popularity → positive") that don't transfer to the evaluation
+    setting where all candidates are recall-model outputs with non-zero cf_scores.
+
+    Fix: label recall candidates using val.csv (observed next-period interactions).
+    Split users 80/20 for ranker train/val.
+
+    Features (content_sim, KG) already computed for these candidates can be reused.
+    """
+    cf_scores = pd.read_csv(cf_scores_path)
+    val_df = pd.read_csv(val_path)
+
+    # Label recall candidates with val positives
+    val_positives = val_df.groupby("user_id")["movie_id"].apply(set).to_dict()
+    cf_scores["label"] = cf_scores.apply(
+        lambda r: 1 if r["movie_id"] in val_positives.get(r["user_id"], set()) else 0,
+        axis=1
+    )
+
+    # Split users for ranker train/val
+    all_users = cf_scores["user_id"].unique()
+    rng = np.random.RandomState(seed)
+    rng.shuffle(all_users)
+    n_val = int(len(all_users) * val_user_ratio)
+    val_users = set(all_users[:n_val])
+    train_users = set(all_users[n_val:])
+
+    train_df = cf_scores[cf_scores["user_id"].isin(train_users)][["user_id", "movie_id", "label"]]
+    val_df_out = cf_scores[cf_scores["user_id"].isin(val_users)][["user_id", "movie_id", "label"]]
+
+    train_df.to_csv(train_output, index=False)
+    val_df_out.to_csv(val_output, index=False)
+
+    for name, df in [("Ranker train", train_df), ("Ranker val", val_df_out)]:
+        n_pos = (df["label"] == 1).sum()
+        print(f"{name}: {len(df)} rows, {n_pos} pos ({n_pos / len(df) * 100:.1f}%), "
+              f"{df['user_id'].nunique()} users")
+
+    return train_df, val_df_out
 
 
 # ---------------------------------------------------------------------------
 # Feature set definitions
 # ---------------------------------------------------------------------------
 
-def define_feature_sets(kg_cols):
+def define_feature_sets(kg_cols, kg_emb_cols=None):
     """Define feature sets for each ablation variant."""
-    v1_features = ["cf_score"]
-    v2_features = ["cf_score", "content_similarity", "popularity", "vote_count"]
+    if kg_emb_cols is None:
+        kg_emb_cols = []
+
+    v1_features = ["cf_score", "kg_recall_score"]
+    v2_features = ["cf_score", "kg_recall_score", "content_similarity", "popularity", "vote_count"]
     v3_features = v2_features + kg_cols
 
-    return {
+    feature_sets = {
         "V1 (CF)": v1_features,
         "V2 (CF+Content)": v2_features,
         "V3 (CF+Content+KG)": v3_features,
     }
+
+    if kg_emb_cols:
+        feature_sets["V3e (CF+Content+KGEmb)"] = v2_features + kg_emb_cols
+        feature_sets["V4 (CF+Content+KG+Emb)"] = v3_features + kg_emb_cols
+
+    return feature_sets
 
 
 # ---------------------------------------------------------------------------
@@ -328,18 +451,20 @@ def hp_search(train_df, val_df, feature_cols, method="pointwise", k=10):
     return best_params
 
 
-# ---------------------------------------------------------------------------
-# Main ablation experiment
-# ---------------------------------------------------------------------------
+def load_kg_emb_features(path):
+    """Load pre-computed KG embedding features."""
+    if os.path.exists(path):
+        return pd.read_csv(path)
+    return None
 
-def run_ablation(
+
+def run_ablation_matched(
     cf_scores_path="results/cf_scores.csv",
-    train_neg_path="data/processed/train_with_neg.csv",
-    val_neg_path="data/processed/val_with_neg.csv",
-    test_neg_path="data/processed/test_with_neg.csv",
-    kg_features_train_path="data/kg/kg_features_train.csv",
-    kg_features_val_path="data/kg/kg_features_val.csv",
-    kg_features_test_path="data/kg/kg_features_test.csv",
+    train_recall_path="data/processed/train_recall_candidates.csv",
+    val_recall_path="data/processed/val_recall_candidates.csv",
+    test_recall_path="data/processed/test_recall_candidates.csv",
+    kg_features_path="data/kg/kg_features_test_recall.csv",
+    kg_emb_features_path="data/kg/kg_emb_features_test_recall.csv",
     train_path="data/processed/train.csv",
     tmdb_path="data/tmdb/tmdb_metadata.csv",
     k=10,
@@ -347,53 +472,54 @@ def run_ablation(
     methods=None,
 ):
     """
-    Run full ablation experiment.
+    Run ablation with distribution-matched training.
 
-    Args:
-        methods: list of ranking methods to compare.
-                 Default: ["pointwise", "lambdamart"]
+    Key difference from run_ablation: both training AND evaluation use recall
+    model's top-100 candidates, eliminating the train/test distribution mismatch
+    where random negatives teach the model shortcuts that fail on hard negatives.
+
+    Training labels come from val.csv (next-period interactions).
+    Test labels come from test.csv.
+    Features are the same for both (same recall candidates, same user history).
     """
     if methods is None:
         methods = ["pointwise", "lambdamart"]
 
-    # ------ Load shared resources ------
     print("Loading data...")
     cf_scores_df = load_recall_scores(cf_scores_path) if os.path.exists(cf_scores_path) else None
     popularity_df = compute_popularity_from_train(train_path)
     tmdb_df = load_tmdb_features(tmdb_path)
 
-    content_sim_train = load_content_similarity("train")
-    content_sim_val = load_content_similarity("val")
-    content_sim_test = load_content_similarity("test")
+    # Same features for train/val/test (same recall candidates, different labels)
+    content_sim_recall = load_content_similarity("test_recall")
+    kg_recall = pd.read_csv(kg_features_path) if os.path.exists(kg_features_path) else None
+    kg_emb_recall = load_kg_emb_features(kg_emb_features_path)
 
-    kg_train = pd.read_csv(kg_features_train_path) if os.path.exists(kg_features_train_path) else None
-    kg_val = pd.read_csv(kg_features_val_path) if os.path.exists(kg_features_val_path) else None
-    kg_test = pd.read_csv(kg_features_test_path) if os.path.exists(kg_features_test_path) else None
+    train_cands = pd.read_csv(train_recall_path)
+    val_cands = pd.read_csv(val_recall_path)
+    test_cands = pd.read_csv(test_recall_path)
 
-    train_cands = pd.read_csv(train_neg_path)
-    val_cands = pd.read_csv(val_neg_path)
-    test_cands = pd.read_csv(test_neg_path)
-
-    # ------ Build feature DataFrames ------
     print("Building feature DataFrames...")
-    train_feat, kg_cols = build_feature_df(
-        train_cands, cf_scores_df, kg_train, content_sim_train, popularity_df, tmdb_df
+    train_feat, kg_cols, kg_emb_cols = build_feature_df(
+        train_cands, cf_scores_df, kg_recall, content_sim_recall, popularity_df, tmdb_df, kg_emb_recall
     )
-    val_feat, _ = build_feature_df(
-        val_cands, cf_scores_df, kg_val, content_sim_val, popularity_df, tmdb_df
+    val_feat, _, _ = build_feature_df(
+        val_cands, cf_scores_df, kg_recall, content_sim_recall, popularity_df, tmdb_df, kg_emb_recall
     )
-    test_feat, _ = build_feature_df(
-        test_cands, cf_scores_df, kg_test, content_sim_test, popularity_df, tmdb_df
+    test_feat, _, _ = build_feature_df(
+        test_cands, cf_scores_df, kg_recall, content_sim_recall, popularity_df, tmdb_df, kg_emb_recall
     )
 
-    print(f"  Train: {len(train_feat)} samples")
-    print(f"  Val:   {len(val_feat)} samples")
-    print(f"  Test:  {len(test_feat)} samples")
+    print(f"  Train: {len(train_feat)} samples ({(train_feat['label']==1).sum()} pos)")
+    print(f"  Val:   {len(val_feat)} samples ({(val_feat['label']==1).sum()} pos)")
+    print(f"  Test:  {len(test_feat)} samples ({(test_feat['label']==1).sum()} pos)")
     print(f"  KG columns: {kg_cols}")
+    if kg_emb_cols:
+        print(f"  KG embedding columns: {kg_emb_cols}")
 
-    feature_sets = define_feature_sets(kg_cols)
+    feature_sets = define_feature_sets(kg_cols, kg_emb_cols)
 
-    # ------ Recall-only baseline ------
+    # Recall-only baseline
     print("\n" + "=" * 60)
     print("  Recall-only baseline (rank by cf_score)")
     print("=" * 60)
@@ -404,14 +530,12 @@ def run_ablation(
     all_per_user = {"Recall-only": recall_per_user}
     all_importance = {}
 
-    # ------ Run each method ------
     for method in methods:
         method_label = "Pointwise" if method == "pointwise" else "LambdaMART"
         print(f"\n{'#'*70}")
         print(f"  RANKING METHOD: {method_label}")
         print(f"{'#'*70}")
 
-        # HP search (once on V3 per method)
         shared_params = None
         if do_hp_search:
             v3_features = [f for f in feature_sets["V3 (CF+Content+KG)"]
@@ -420,7 +544,6 @@ def run_ablation(
             shared_params = hp_search(train_feat, val_feat, v3_features,
                                       method=method, k=k)
 
-        # Ablation: V1, V2, V3
         for variant_name, features in feature_sets.items():
             available = [f for f in features if f in train_feat.columns]
             full_name = f"{variant_name} [{method_label}]"
@@ -442,9 +565,9 @@ def run_ablation(
             ))
             all_importance[full_name] = importance
 
-    # ------ Summary table ------
+    # Summary table
     print("\n" + "=" * 90)
-    print("  FULL COMPARISON: Pointwise vs LambdaMART")
+    print("  FULL COMPARISON (Distribution-Matched Training)")
     print("=" * 90)
     header = (f"{'Variant':<40} "
               f"{'NDCG@1':>8} {'NDCG@5':>8} {'NDCG@10':>8} "
@@ -465,23 +588,17 @@ def run_ablation(
             f"{metrics.get('MRR@10', 0):>8.4f}"
         )
 
-    # ------ Statistical significance: Pointwise V3 vs LambdaMART V3 ------
-    pw_v3 = "V3 (CF+Content+KG) [Pointwise]"
-    lm_v3 = "V3 (CF+Content+KG) [LambdaMART]"
+    # Statistical tests
     print("\n  Statistical Tests:")
-
     test_pairs = [
-        # Within Pointwise
         ("V3 (CF+Content+KG) [Pointwise]", "V2 (CF+Content) [Pointwise]",
          "Pointwise: KG contribution"),
-        # Within LambdaMART
         ("V3 (CF+Content+KG) [LambdaMART]", "V2 (CF+Content) [LambdaMART]",
          "LambdaMART: KG contribution"),
-        # Pointwise vs LambdaMART (same features V3)
-        (lm_v3, pw_v3, "LambdaMART vs Pointwise (V3)"),
-        # Pointwise vs LambdaMART (same features V2)
-        ("V2 (CF+Content) [LambdaMART]", "V2 (CF+Content) [Pointwise]",
-         "LambdaMART vs Pointwise (V2)"),
+        ("V3 (CF+Content+KG) [Pointwise]", "Recall-only",
+         "V3 Pointwise vs Recall-only"),
+        ("V3 (CF+Content+KG) [LambdaMART]", "Recall-only",
+         "V3 LambdaMART vs Recall-only"),
     ]
     for name_a, name_b, desc in test_pairs:
         if name_a in all_per_user and name_b in all_per_user:
@@ -498,23 +615,21 @@ def run_ablation(
                 print(f"      diff={mean_diff:+.4f}, t={t_stat:.4f}, "
                       f"p={p_value:.6f} -> {sig}")
 
-    # ------ Feature importance for LambdaMART V3 ------
-    for key in [lm_v3, pw_v3]:
-        if key in all_importance:
+    # Feature importance
+    for key in all_importance:
+        if "V3" in key:
             print(f"\n  Feature Importance ({key}):")
             sorted_imp = sorted(all_importance[key].items(),
                                 key=lambda x: x[1], reverse=True)
             for feat, imp in sorted_imp:
                 print(f"    {feat:<35s}: {imp:.1f}")
 
-    # ------ Save results ------
+    # Save results
     os.makedirs("results", exist_ok=True)
     with open("results/ablation_results.json", "w") as f:
         json.dump(all_results, f, indent=2)
-
     with open("results/ablation_per_user.pkl", "wb") as f:
         pickle.dump(all_per_user, f)
-
     with open("results/feature_importance.json", "w") as f:
         json.dump(all_importance, f, indent=2, default=float)
 
@@ -522,4 +637,4 @@ def run_ablation(
 
 
 if __name__ == "__main__":
-    run_ablation()
+    run_ablation_matched()

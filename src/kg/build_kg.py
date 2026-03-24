@@ -1,12 +1,17 @@
 """
-Build Knowledge Graph from TMDB metadata.
-Constructs triples: (movie, has_genre, genre), (movie, acted_by, actor), (movie, directed_by, director)
+Build Knowledge Graph from TMDB metadata + collaborative edges.
+
+Relations:
+  - has_genre, acted_by, directed_by (from TMDB metadata)
+  - released_in_decade (from TMDB year)
+  - co_liked (from user co-interaction in training data, threshold ≥ N users)
 """
 import os
+import numpy as np
 import pandas as pd
 import networkx as nx
 import pickle
-from collections import Counter
+from collections import Counter, defaultdict
 
 
 def load_tmdb_metadata(path="data/tmdb/tmdb_metadata.csv"):
@@ -61,6 +66,62 @@ def build_triples(metadata_df):
     return triples, entity_types
 
 
+def build_decade_triples(metadata_df):
+    """Add released_in_decade relations."""
+    triples = []
+    entity_types = {}
+    for _, row in metadata_df.iterrows():
+        movie_id = int(row["movie_id"])
+        movie_node = f"movie_{movie_id}"
+        year = row.get("year")
+        if pd.notna(year):
+            decade = int(int(year) // 10) * 10
+            decade_node = f"decade_{decade}s"
+            entity_types[decade_node] = "decade"
+            triples.append((movie_node, "released_in_decade", decade_node))
+    return triples, entity_types
+
+
+def build_collaborative_triples(
+    train_path="data/processed/train.csv",
+    min_cooccurrence=10,
+    max_edges=100000,
+):
+    """
+    Add co_liked edges between movies frequently co-liked by users.
+
+    This encodes collaborative filtering signal directly into the KG,
+    bridging the gap between CF and KG-based recommendations.
+    """
+    train_df = pd.read_csv(train_path)
+    user_movies = train_df.groupby("user_id")["movie_id"].apply(set).to_dict()
+
+    # Count co-occurrences
+    cooccur = Counter()
+    for uid, movies in user_movies.items():
+        movies = sorted(movies)
+        for i in range(len(movies)):
+            for j in range(i + 1, len(movies)):
+                cooccur[(movies[i], movies[j])] += 1
+
+    # Filter by threshold and sort by count
+    strong_pairs = [(pair, count) for pair, count in cooccur.items()
+                    if count >= min_cooccurrence]
+    strong_pairs.sort(key=lambda x: x[1], reverse=True)
+    strong_pairs = strong_pairs[:max_edges]
+
+    triples = []
+    for (m1, m2), count in strong_pairs:
+        node1 = f"movie_{m1}"
+        node2 = f"movie_{m2}"
+        triples.append((node1, "co_liked", node2))
+
+    print(f"  Collaborative edges: {len(triples)} pairs "
+          f"(threshold >= {min_cooccurrence} users, "
+          f"from {len(cooccur)} total pairs)")
+    return triples
+
+
 def build_networkx_graph(triples):
     """Build a NetworkX graph from triples."""
     G = nx.Graph()
@@ -98,8 +159,19 @@ def main():
     metadata = load_tmdb_metadata()
     print(f"Loaded metadata for {len(metadata)} movies")
 
-    # Build triples
+    # Build metadata triples
     triples, entity_types = build_triples(metadata)
+    print(f"  Metadata triples: {len(triples)}")
+
+    # Add decade relations
+    decade_triples, decade_entities = build_decade_triples(metadata)
+    triples.extend(decade_triples)
+    entity_types.update(decade_entities)
+    print(f"  + Decade triples: {len(decade_triples)}")
+
+    # Add collaborative edges
+    collab_triples = build_collaborative_triples()
+    triples.extend(collab_triples)
 
     # Save triples
     triples_df = pd.DataFrame(triples, columns=["head", "relation", "tail"])
