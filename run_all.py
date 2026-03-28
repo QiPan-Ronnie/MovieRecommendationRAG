@@ -78,10 +78,10 @@ def run_phase2():
     from src.kg.transe import main as transe_main
     transe_main()
 
-    # 2.3 Multi-route recall (CF + KG)
-    print("\n[2.3] Generating multi-route recall candidates (CF + KG)...")
+    # 2.3 Multi-route recall (best recall model + KG)
+    print("\n[2.3] Generating multi-route recall candidates...")
     from src.models.multi_recall import generate_multi_recall
-    generate_multi_recall()
+    generate_multi_recall()  # auto-detects best recall model (LightGCN > MF > CF)
 
     # 2.4 Build recall candidate labels (val for training, test for evaluation)
     print("\n[2.4] Labeling recall candidates for ranker train/val/test...")
@@ -129,7 +129,7 @@ def run_phase3():
     print(f"Using recall scores from: {scores_path}")
 
     from src.ranker.ranker import run_ablation_matched
-    run_ablation_matched(cf_scores_path=scores_path)
+    run_ablation_matched(cf_scores_path=scores_path, do_hp_search=True)
 
 
 def run_phase4():

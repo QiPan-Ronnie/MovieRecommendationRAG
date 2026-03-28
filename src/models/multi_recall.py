@@ -71,8 +71,22 @@ def kg_recall_for_user(user_history, movie2idx, emb_normed,
     return results
 
 
+def _auto_detect_recall_scores():
+    """Auto-detect best available recall model scores (prefer LightGCN > MF > CF)."""
+    candidates = [
+        ("results/lightgcn_scores.csv", "lgcn_score", "LightGCN"),
+        ("results/mf_scores.csv", "mf_score", "BPR-MF"),
+        ("results/cf_scores.csv", "cf_score", "Item-CF"),
+    ]
+    for path, score_col, name in candidates:
+        if os.path.exists(path):
+            print(f"  Using recall scores from {name}: {path}")
+            return path, score_col
+    raise FileNotFoundError("No recall score files found in results/")
+
+
 def generate_multi_recall(
-    cf_scores_path="results/cf_scores.csv",
+    cf_scores_path=None,
     train_path="data/processed/train.csv",
     output_path="results/multi_recall_scores.csv",
     n_cf=70,
@@ -83,13 +97,21 @@ def generate_multi_recall(
     """
     Generate multi-route recall candidates for all users.
 
-    Combines Item-CF top-n_cf with KG TransE top-n_kg, deduplicates,
+    Combines recall model top-n_cf with KG TransE top-n_kg, deduplicates,
     and outputs top-n_total candidates per user.
     """
+    # Auto-detect best recall model if not specified
+    if cf_scores_path is None:
+        cf_scores_path, auto_score_col = _auto_detect_recall_scores()
+    else:
+        auto_score_col = None
+
     print(f"Multi-route recall: CF top-{n_cf} + KG top-{n_kg} -> {n_total} per user")
 
-    # Load CF scores
+    # Load recall scores and normalize column name to "cf_score"
     cf_df = pd.read_csv(cf_scores_path)
+    if auto_score_col and auto_score_col in cf_df.columns and "cf_score" not in cf_df.columns:
+        cf_df = cf_df.rename(columns={auto_score_col: "cf_score"})
     cf_by_user = {}
     for uid, group in cf_df.groupby("user_id"):
         sorted_g = group.sort_values("cf_score", ascending=False)
