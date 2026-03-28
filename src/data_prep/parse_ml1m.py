@@ -1,10 +1,11 @@
 """
 Parse MovieLens 1M raw .dat files into clean CSV format.
-Implements: positive threshold (rating >= 4), 3-way time-based split,
-per-split negative sampling with no future leakage.
+Implements: positive threshold (rating >= 4), 3-way time-based split.
+
+Negative sampling is NOT done here — the ranker uses distribution-matched
+candidates from the recall model's top-100 (see src/ranker/ranker.py).
 """
 import pandas as pd
-import numpy as np
 import os
 
 RAW_DIR = "data/raw/ml-1m"
@@ -130,60 +131,6 @@ def split_train_val_test(ratings, train_ratio=0.7, val_ratio=0.1):
     return train, val, test
 
 
-def generate_negative_samples(positive_df, all_movie_ids, user_history,
-                              neg_ratio=4, seed=42):
-    """
-    For each positive interaction in positive_df, sample neg_ratio negative
-    movies that the user has NOT interacted with.
-
-    Args:
-        positive_df: DataFrame with positive interactions for this split.
-        all_movie_ids: All valid movie IDs in the dataset.
-        user_history: dict[user_id] -> set(movie_id) of ALL interactions
-                      up to and including this split (to avoid sampling
-                      a known item as negative).
-        neg_ratio: Number of negatives per positive.
-        seed: Random seed.
-
-    Returns:
-        DataFrame with columns [user_id, movie_id, label].
-    """
-    rng = np.random.RandomState(seed)
-    all_movies = set(all_movie_ids)
-
-    neg_samples = []
-    for _, row in positive_df.iterrows():
-        uid = row["user_id"]
-        candidates = list(all_movies - user_history.get(uid, set()))
-        n_neg = min(neg_ratio, len(candidates))
-        if n_neg > 0:
-            sampled = rng.choice(candidates, size=n_neg, replace=False).tolist()
-            for mid in sampled:
-                neg_samples.append({"user_id": uid, "movie_id": mid, "label": 0})
-
-    neg_df = pd.DataFrame(neg_samples)
-
-    # Positive labels
-    pos_df = positive_df[["user_id", "movie_id"]].copy()
-    pos_df["label"] = 1
-
-    combined = pd.concat([pos_df, neg_df], ignore_index=True)
-    print(f"  Generated: {len(pos_df)} pos + {len(neg_df)} neg = {len(combined)} total")
-    return combined
-
-
-def build_user_history(dfs):
-    """Build cumulative user history from a list of DataFrames."""
-    history = {}
-    for df in dfs:
-        for _, row in df.iterrows():
-            uid = row["user_id"]
-            if uid not in history:
-                history[uid] = set()
-            history[uid].add(row["movie_id"])
-    return history
-
-
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -208,34 +155,7 @@ def main():
     val.to_csv(os.path.join(OUT_DIR, "val.csv"), index=False)
     test.to_csv(os.path.join(OUT_DIR, "test.csv"), index=False)
 
-    # 5. Negative sampling (per split, no future leakage)
-    all_movie_ids = clean["movie_id"].unique()
-
-    # Train negatives: history = train only
-    print("\nNegative sampling for train...")
-    train_history = build_user_history([train])
-    train_with_neg = generate_negative_samples(
-        train, all_movie_ids, train_history, neg_ratio=4, seed=42
-    )
-    train_with_neg.to_csv(os.path.join(OUT_DIR, "train_with_neg.csv"), index=False)
-
-    # Validation negatives: history = train + val
-    print("Negative sampling for validation...")
-    val_history = build_user_history([train, val])
-    val_with_neg = generate_negative_samples(
-        val, all_movie_ids, val_history, neg_ratio=4, seed=43
-    )
-    val_with_neg.to_csv(os.path.join(OUT_DIR, "val_with_neg.csv"), index=False)
-
-    # Test negatives: history = train + val + test
-    print("Negative sampling for test...")
-    test_history = build_user_history([train, val, test])
-    test_with_neg = generate_negative_samples(
-        test, all_movie_ids, test_history, neg_ratio=4, seed=44
-    )
-    test_with_neg.to_csv(os.path.join(OUT_DIR, "test_with_neg.csv"), index=False)
-
-    # 6. Summary
+    # 5. Summary
     print("\n" + "=" * 60)
     print("  DATA PREPARATION SUMMARY")
     print("=" * 60)
@@ -244,7 +164,6 @@ def main():
     print(f"  Movies: {clean['movie_id'].nunique()}")
     print(f"  Interactions: {len(clean)}")
     print(f"  Train: {len(train)} | Val: {len(val)} | Test: {len(test)}")
-    print(f"  Train+neg: {len(train_with_neg)} | Val+neg: {len(val_with_neg)} | Test+neg: {len(test_with_neg)}")
     print(f"\n  Files saved to {OUT_DIR}/")
     print("=" * 60)
 

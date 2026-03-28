@@ -206,9 +206,8 @@ def main():
     user_history = build_train_user_history("data/processed/train.csv", max_history=20)
 
     splits = [
-        ("data/processed/train_with_neg.csv", "data/kg/kg_features_train.csv"),
-        ("data/processed/val_with_neg.csv", "data/kg/kg_features_val.csv"),
-        ("data/processed/test_with_neg.csv", "data/kg/kg_features_test.csv"),
+        ("data/processed/train_recall_candidates.csv", "data/kg/kg_features_train_recall.csv"),
+        ("data/processed/val_recall_candidates.csv", "data/kg/kg_features_val_recall.csv"),
         ("data/processed/test_recall_candidates.csv", "data/kg/kg_features_test_recall.csv"),
     ]
 

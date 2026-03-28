@@ -95,7 +95,7 @@ Evaluated on full catalog (~3,125 movies), top-10.
 | **kg_shared_actor_idf_sum** | **1,957** | **2.3%** | **IDF** |
 | kg_recall_score | 1,919 | 2.3% | |
 
-**KG features now account for 24.8% of total gain** (vs 9.3% with old 3-relation KG). The three new signal types (IDF weighting, decade, co_liked) are all in the top-10 features.
+**KG features account for 24.8% of total gain.** The three new signal types (IDF weighting, decade, co_liked) are all in the top-10 features.
 
 ---
 
@@ -142,7 +142,7 @@ Tail analysis based on 212 users with tail positives in recall candidates (stati
 
 ### RQ1: Does KG-enhanced re-ranking outperform baselines?
 
-**Confirmed.** V3 significantly outperforms V2 in both Pointwise (p=0.0007) and LambdaMART (p=0.007). The enriched KG features account for 24.8% of total feature importance, up from 9.3% with the initial 3-relation KG.
+**Confirmed.** V3 significantly outperforms V2 in both Pointwise (p=0.0007) and LambdaMART (p=0.007). The enriched KG features account for 24.8% of total feature importance.
 
 V3 Recall@10 surpasses Recall-only: **0.1899 vs 0.1835 (Pointwise)** and **0.1982 vs 0.1835 (LambdaMART)**. V3 does not yet beat Recall-only on NDCG@10, reflecting a trade-off: KG features improve recall and diversity at a small cost to top-position precision.
 

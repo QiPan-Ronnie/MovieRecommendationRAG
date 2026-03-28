@@ -74,7 +74,7 @@ def compute_movie_embeddings(tmdb_path="data/tmdb/tmdb_metadata.csv",
     return embeddings, movie_ids
 
 
-def compute_content_sim_for_split(split_with_neg_path, train_path,
+def compute_content_sim_for_split(split_path, train_path,
                                   embeddings, movie_ids, output_path,
                                   max_history=20):
     """
@@ -108,8 +108,8 @@ def compute_content_sim_for_split(split_with_neg_path, train_path,
             user_profiles[uid] = embeddings[indices].mean(axis=0)
 
     # Compute similarity for each (user, candidate) pair
-    split_df = pd.read_csv(split_with_neg_path)
-    print(f"Computing content similarity for {split_with_neg_path} ({len(split_df)} pairs)...")
+    split_df = pd.read_csv(split_path)
+    print(f"Computing content similarity for {split_path} ({len(split_df)} pairs)...")
 
     similarities = []
     for _, row in tqdm(split_df.iterrows(), total=len(split_df), desc="Content Sim"):
@@ -148,9 +148,8 @@ def main():
     # Step 2: Compute content similarity for each split
     train_path = "data/processed/train.csv"
     splits = [
-        ("data/processed/train_with_neg.csv", "data/processed/content_sim_train.csv"),
-        ("data/processed/val_with_neg.csv", "data/processed/content_sim_val.csv"),
-        ("data/processed/test_with_neg.csv", "data/processed/content_sim_test.csv"),
+        ("data/processed/train_recall_candidates.csv", "data/processed/content_sim_train_recall.csv"),
+        ("data/processed/val_recall_candidates.csv", "data/processed/content_sim_val_recall.csv"),
         ("data/processed/test_recall_candidates.csv", "data/processed/content_sim_test_recall.csv"),
     ]
 
