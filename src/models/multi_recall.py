@@ -72,11 +72,16 @@ def kg_recall_for_user(user_history, movie2idx, emb_normed,
 
 
 def _auto_detect_recall_scores():
-    """Auto-detect best available recall model scores (prefer LightGCN > MF > CF)."""
+    """Auto-detect best available recall model scores.
+
+    Uses Item-CF by default — experiments showed Item-CF produces higher-quality
+    candidates for re-ranking than LightGCN despite lower coverage.
+    See EXPERIMENT_LOG.md for details.
+    """
     candidates = [
-        ("results/lightgcn_scores.csv", "lgcn_score", "LightGCN"),
-        ("results/mf_scores.csv", "mf_score", "BPR-MF"),
         ("results/cf_scores.csv", "cf_score", "Item-CF"),
+        ("results/mf_scores.csv", "mf_score", "BPR-MF"),
+        ("results/lightgcn_scores.csv", "lgcn_score", "LightGCN"),
     ]
     for path, score_col, name in candidates:
         if os.path.exists(path):

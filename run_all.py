@@ -129,7 +129,7 @@ def run_phase3():
     print(f"Using recall scores from: {scores_path}")
 
     from src.ranker.ranker import run_ablation_matched
-    run_ablation_matched(cf_scores_path=scores_path, do_hp_search=True)
+    run_ablation_matched(cf_scores_path=scores_path, do_hp_search=False)
 
 
 def run_phase4():
