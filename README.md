@@ -18,11 +18,11 @@ This project builds a two-stage (recall + re-rank) movie recommendation system o
 
 | Finding | Result |
 |---------|--------|
-| **RQ1**: KG vs CF baseline | V3 vs V2: p=0.0007 (Pointwise), p=0.007 (LambdaMART) |
-| **RQ1**: Best Recall@10 | V3 LambdaMART: **0.1982** (vs Recall-only 0.1835, +8%) |
-| **RQ2**: Tail lift vs head lift | **3.6x** (V3) to **7.9x** (V4) higher for tail items |
-| **RQ2**: Low-entropy user lift | **+51%** Recall@10 (vs +3% for high-entropy users) |
-| KG feature importance share | **24.8%** of total LightGBM gain |
+| **RQ1**: KG vs CF baseline | V3 vs V2: p=0.026 (Pointwise), p=0.045 (LambdaMART) |
+| **RQ1**: Best Recall@10 | V4 LambdaMART: **0.1976** (vs Recall-only 0.1817, +8.8%) |
+| **RQ2**: Tail lift vs head lift | **3.5x** higher for tail items (V3 vs V1) |
+| **RQ2**: Low-entropy user lift | **+52%** Recall@10 (vs +6% for high-entropy users) |
+| KG feature importance share | **28.4%** of total LightGBM gain |
 
 See [`results/RESULTS.md`](results/RESULTS.md) for full experimental results.
 
