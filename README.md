@@ -28,6 +28,26 @@ See [`results/RESULTS.md`](results/RESULTS.md) for full experimental results.
 
 ## Quick Start
 
+### Option A: Use Pre-computed Data (Recommended)
+
+Download [`data_release.tar.gz`](https://github.com/XqFeng-Josie/MovieRecommendation/releases) and extract:
+
+```bash
+# 1. Environment
+python -m venv movie_env && source movie_env/bin/activate
+pip install -r requirements.txt
+
+# 2. Data: download ML-1M and extract pre-computed data
+# Download ML-1M from https://grouplens.org/datasets/movielens/1m/ to data/raw/ml-1m/
+tar xzf data_release.tar.gz
+
+# 3. Run ranker ablation + long-tail analysis directly (skip Phase 0-2)
+python run_all.py --phase 3    # Ranker ablation (~10 min)
+python run_all.py --phase 4    # Long-tail analysis (~5 min)
+```
+
+### Option B: Run Full Pipeline from Scratch
+
 ```bash
 # 1. Environment
 python -m venv movie_env && source movie_env/bin/activate
@@ -39,13 +59,24 @@ export TMDB_API_KEY=your_key_here
 # 3. Run full pipeline
 python run_all.py
 
-# 4. Or run individual phases
+# Or run individual phases
 python run_all.py --phase 0    # Data prep
-python run_all.py --phase 1    # Recall baselines
+python run_all.py --phase 1    # Recall baselines (requires GPU)
 python run_all.py --phase 2    # KG + multi-recall + features
 python run_all.py --phase 3    # Ranker ablation
 python run_all.py --phase 4    # Long-tail analysis
 ```
+
+### Data Contents
+
+The `data_release.tar.gz` (123MB) contains all intermediate outputs so you can skip expensive computation:
+
+| Directory | Contents | Size |
+|-----------|----------|------|
+| `data/tmdb/` | TMDB metadata (3,652 movies) | 2MB |
+| `data/processed/` | Train/val/test splits, recall candidates, content similarity, movie embeddings | 76MB |
+| `data/kg/` | KG graph, triples, TransE embeddings, KG features | 184MB |
+| `results/` | Recall model scores, ablation results, feature importance | 69MB |
 
 ## Pipeline Architecture
 
