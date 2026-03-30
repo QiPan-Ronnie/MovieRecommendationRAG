@@ -1,0 +1,122 @@
+{
+  "V1 (CF) [Pointwise]": {
+    "cf_score": 48340.48769980669,
+    "kg_recall_score": 2436.856530725956
+  },
+  "V2 (CF+Content) [Pointwise]": {
+    "cf_score": 49664.01440834999,
+    "kg_recall_score": 2059.0703659057617,
+    "content_similarity": 6262.206481456757,
+    "popularity": 4256.357547283173,
+    "vote_count": 3492.9054791927338
+  },
+  "V3 (CF+Content+KG) [Pointwise]": {
+    "cf_score": 49155.108159542084,
+    "kg_recall_score": 1588.0068321228027,
+    "content_similarity": 3850.3366100788116,
+    "popularity": 4289.13326382637,
+    "vote_count": 2933.553647518158,
+    "kg_shared_actor_count_sum": 240.64474534988403,
+    "kg_shared_actor_count_max": 346.40932846069336,
+    "kg_same_director_max": 332.86480140686035,
+    "kg_same_genre_count_sum": 4683.685138702393,
+    "kg_same_genre_count_max": 320.76321959495544,
+    "kg_shared_actor_idf_sum": 1993.6562523841858,
+    "kg_same_director_idf_max": 695.646514415741,
+    "kg_same_genre_idf_sum": 5255.444241762161,
+    "kg_co_liked_sum": 3137.967512369156,
+    "kg_same_decade_ratio": 5330.648671627045
+  },
+  "V3e (CF+Content+KGEmb) [Pointwise]": {
+    "cf_score": 48905.88128232956,
+    "kg_recall_score": 808.2825393676758,
+    "content_similarity": 5178.494566679001,
+    "popularity": 4149.261420249939,
+    "vote_count": 2885.764816761017,
+    "kg_emb_mean_dist": 2792.4478912353516,
+    "kg_emb_mean_cos": 1878.2327852249146,
+    "kg_emb_min_dist": 2037.9596552848816,
+    "kg_emb_max_cos": 1455.9024488925934
+  },
+  "V4 (CF+Content+KG+Emb) [Pointwise]": {
+    "cf_score": 48593.936675071716,
+    "kg_recall_score": 723.3404011726379,
+    "content_similarity": 2872.978504180908,
+    "popularity": 3603.6716833114624,
+    "vote_count": 2119.551206111908,
+    "kg_shared_actor_count_sum": 120.722900390625,
+    "kg_shared_actor_count_max": 325.581289768219,
+    "kg_same_director_max": 354.7181544303894,
+    "kg_same_genre_count_sum": 3924.0452003479004,
+    "kg_same_genre_count_max": 203.54228973388672,
+    "kg_shared_actor_idf_sum": 1683.194790840149,
+    "kg_same_director_idf_max": 712.302330493927,
+    "kg_same_genre_idf_sum": 4554.697093963623,
+    "kg_co_liked_sum": 2647.698525905609,
+    "kg_same_decade_ratio": 5150.327024459839,
+    "kg_emb_mean_dist": 1830.1788702011108,
+    "kg_emb_mean_cos": 1151.5375499725342,
+    "kg_emb_min_dist": 1625.8368873596191,
+    "kg_emb_max_cos": 1097.0212168693542
+  },
+  "V1 (CF) [LambdaMART]": {
+    "cf_score": 1386.7871911525726,
+    "kg_recall_score": 85.29861974716187
+  },
+  "V2 (CF+Content) [LambdaMART]": {
+    "cf_score": 8620.799193143845,
+    "kg_recall_score": 1774.4754691123962,
+    "content_similarity": 5517.267709732056,
+    "popularity": 5195.884232997894,
+    "vote_count": 3827.578510284424
+  },
+  "V3 (CF+Content+KG) [LambdaMART]": {
+    "cf_score": 5815.474174022675,
+    "kg_recall_score": 599.6120800971985,
+    "content_similarity": 2903.1132040023804,
+    "popularity": 3024.3354382514954,
+    "vote_count": 2971.1089878082275,
+    "kg_shared_actor_count_sum": 33.921149253845215,
+    "kg_shared_actor_count_max": 374.82572650909424,
+    "kg_same_director_max": 414.357928276062,
+    "kg_same_genre_count_sum": 2072.385859489441,
+    "kg_same_genre_count_max": 302.7075710296631,
+    "kg_shared_actor_idf_sum": 1805.5512747764587,
+    "kg_same_director_idf_max": 381.8633918762207,
+    "kg_same_genre_idf_sum": 2804.8921823501587,
+    "kg_co_liked_sum": 1078.3492603302002,
+    "kg_same_decade_ratio": 3018.921113014221
+  },
+  "V3e (CF+Content+KGEmb) [LambdaMART]": {
+    "cf_score": 3957.4702043533325,
+    "kg_recall_score": 166.85800075531006,
+    "content_similarity": 1474.0114078521729,
+    "popularity": 1974.5072870254517,
+    "vote_count": 1149.2979049682617,
+    "kg_emb_mean_dist": 495.1449975967407,
+    "kg_emb_mean_cos": 544.8961982727051,
+    "kg_emb_min_dist": 530.0752992630005,
+    "kg_emb_max_cos": 505.6792984008789
+  },
+  "V4 (CF+Content+KG+Emb) [LambdaMART]": {
+    "cf_score": 3456.932092666626,
+    "kg_recall_score": 40.89779853820801,
+    "content_similarity": 942.8391017913818,
+    "popularity": 1322.8855924606323,
+    "vote_count": 897.2059030532837,
+    "kg_shared_actor_count_sum": 0.0,
+    "kg_shared_actor_count_max": 161.50139999389648,
+    "kg_same_director_max": 93.0463981628418,
+    "kg_same_genre_count_sum": 1038.3400058746338,
+    "kg_same_genre_count_max": 15.903300285339355,
+    "kg_shared_actor_idf_sum": 639.2348051071167,
+    "kg_same_director_idf_max": 102.37389945983887,
+    "kg_same_genre_idf_sum": 1018.4926948547363,
+    "kg_co_liked_sum": 292.4745969772339,
+    "kg_same_decade_ratio": 1544.0724029541016,
+    "kg_emb_mean_dist": 280.70849800109863,
+    "kg_emb_mean_cos": 315.39080142974854,
+    "kg_emb_min_dist": 354.471399307251,
+    "kg_emb_max_cos": 261.6771001815796
+  }
+}
