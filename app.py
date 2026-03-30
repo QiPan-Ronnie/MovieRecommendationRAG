@@ -286,8 +286,9 @@ if page == "🔗 KG Explorer":
             for n in G.neighbors(movie_node):
                 direct.add(n)
             remaining = list(visited - direct)
+            n_sample = min(len(remaining), max(0, MAX_NODES - len(direct)))
             np.random.seed(42)
-            sampled = set(np.random.choice(remaining, MAX_NODES - len(direct), replace=False))
+            sampled = set(np.random.choice(remaining, n_sample, replace=False)) if n_sample > 0 else set()
             visited = direct | sampled
             sub_edges = [(a, b, r) for a, b, r in sub_edges if a in visited and b in visited]
 
