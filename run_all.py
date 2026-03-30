@@ -33,7 +33,7 @@ def run_phase0(skip_tmdb=False):
     print("#" * 60)
 
     print("\n[0.1] Parsing MovieLens 1M...")
-    from src.data_prep.parse_ml1m import main as parse_main
+    from data_prep.parse_ml1m import main as parse_main
     parse_main()
 
     if not skip_tmdb:
@@ -44,7 +44,7 @@ def run_phase0(skip_tmdb=False):
             print("  Set it with: export TMDB_API_KEY=your_key_here")
             sys.exit(1)
         subprocess.run([
-            sys.executable, "src/data_prep/fetch_tmdb.py",
+            sys.executable, "data_prep/fetch_tmdb.py",
             "--api_key", api_key,
             "--delay", "0.05"
         ], check=True)
@@ -58,7 +58,7 @@ def run_phase1():
     print("# Phase 1: Baseline Models")
     print("#" * 60)
 
-    from src.run_baselines import main as baselines_main
+    from run_baselines import main as baselines_main
     baselines_main()
 
 
@@ -70,23 +70,23 @@ def run_phase2():
 
     # 2.1 Build KG
     print("\n[2.1] Building KG from TMDB metadata...")
-    from src.kg.build_kg import main as kg_main
+    from kg.build_kg import main as kg_main
     kg_main()
 
     # 2.2 Train TransE
     print("\n[2.2] Training TransE KG embeddings...")
-    from src.kg.transe import main as transe_main
+    from kg.transe import main as transe_main
     transe_main()
 
     # 2.3 Multi-route recall (best recall model + KG)
     print("\n[2.3] Generating multi-route recall candidates...")
-    from src.models.multi_recall import generate_multi_recall
+    from models.multi_recall import generate_multi_recall
     generate_multi_recall()  # auto-detects best recall model (LightGCN > MF > CF)
 
     # 2.4 Build recall candidate labels (val for training, test for evaluation)
     print("\n[2.4] Labeling recall candidates for ranker train/val/test...")
     scores_path = "results/multi_recall_scores.csv"
-    from src.ranker.ranker import (
+    from ranker.ranker import (
         build_recall_test_candidates,
         build_recall_train_val_candidates,
     )
@@ -104,15 +104,15 @@ def run_phase2():
 
     # 2.5 Feature engineering for recall candidates
     print("\n[2.5] Computing content similarity (Sentence-Transformer)...")
-    from src.kg.content_similarity import main as content_sim_main
+    from kg.content_similarity import main as content_sim_main
     content_sim_main()
 
     print("\n[2.6] Computing KG features (hand-crafted)...")
-    from src.kg.kg_features import main as kg_feat_main
+    from kg.kg_features import main as kg_feat_main
     kg_feat_main()
 
     print("\n[2.7] Computing KG embedding features (TransE)...")
-    from src.kg.kg_embedding_features import main as kg_emb_main
+    from kg.kg_embedding_features import main as kg_emb_main
     kg_emb_main()
 
 
@@ -128,7 +128,7 @@ def run_phase3():
 
     print(f"Using recall scores from: {scores_path}")
 
-    from src.ranker.ranker import run_ablation_matched
+    from ranker.ranker import run_ablation_matched
     run_ablation_matched(cf_scores_path=scores_path, do_hp_search=False)
 
 
@@ -138,7 +138,7 @@ def run_phase4():
     print("# Phase 4: Long-tail Analysis")
     print("#" * 60)
 
-    from src.evaluation.longtail_analysis import run_longtail_analysis
+    from evaluation.longtail_analysis import run_longtail_analysis
     run_longtail_analysis()
 
 

@@ -10,7 +10,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from collections import defaultdict
 import os
 
-from src.evaluation.metrics import evaluate_all, print_results
+from evaluation.metrics import evaluate_all, print_results
 
 
 def build_interaction_matrix(train_df, user2idx, movie2idx):

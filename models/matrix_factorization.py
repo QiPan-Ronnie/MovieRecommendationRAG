@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from collections import defaultdict
 
-from src.evaluation.metrics import evaluate_all, print_results
+from evaluation.metrics import evaluate_all, print_results
 
 
 class BPRDataset(Dataset):

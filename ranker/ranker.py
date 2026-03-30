@@ -21,7 +21,7 @@ from scipy.stats import ttest_rel
 from collections import defaultdict
 from itertools import product
 
-from src.evaluation.metrics import evaluate_all, print_results
+from evaluation.metrics import evaluate_all, print_results
 
 
 # ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 Fetch movie metadata from TMDB API with checkpoint/resume support.
 
 Usage:
-    python src/data_prep/fetch_tmdb.py --api_key YOUR_TMDB_API_KEY
+    python data_prep/fetch_tmdb.py --api_key YOUR_TMDB_API_KEY
 
 The script caches each movie's response as a JSON file in data/tmdb/cache/.
 On re-run, it skips already-cached movies (checkpoint/resume).

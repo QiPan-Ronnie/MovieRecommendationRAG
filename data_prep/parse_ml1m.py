@@ -3,7 +3,7 @@ Parse MovieLens 1M raw .dat files into clean CSV format.
 Implements: positive threshold (rating >= 4), 3-way time-based split.
 
 Negative sampling is NOT done here — the ranker uses distribution-matched
-candidates from the recall model's top-100 (see src/ranker/ranker.py).
+candidates from the recall model's top-100 (see ranker/ranker.py).
 """
 import pandas as pd
 import os

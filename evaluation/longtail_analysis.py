@@ -12,8 +12,8 @@ import numpy as np
 import pandas as pd
 from collections import Counter, defaultdict
 
-from src.evaluation.metrics import recall_at_k, ndcg_at_k, evaluate_all
-from src.ranker.ranker import (
+from evaluation.metrics import recall_at_k, ndcg_at_k, evaluate_all
+from ranker.ranker import (
     load_recall_scores, compute_popularity_from_train,
     load_content_similarity, load_tmdb_features,
     build_feature_df, define_feature_sets, train_lgbm,

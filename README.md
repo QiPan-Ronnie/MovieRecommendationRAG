@@ -105,31 +105,29 @@ The `data_release.tar.gz` (123MB) contains all intermediate outputs so you can s
 
 ```
 MovieRecommendation/
-├── src/
-│   ├── data_prep/
-│   │   ├── parse_ml1m.py            # ML-1M parsing, filtering, 3-way split
-│   │   └── fetch_tmdb.py            # TMDB metadata fetch (checkpoint/resume)
-│   ├── models/
-│   │   ├── item_cf.py               # Item-based Collaborative Filtering
-│   │   ├── matrix_factorization.py  # BPR Matrix Factorization (PyTorch)
-│   │   ├── lightgcn.py              # LightGCN (PyTorch)
-│   │   └── multi_recall.py          # Multi-route recall: CF + KG candidates
-│   ├── kg/
-│   │   ├── build_kg.py              # KG construction (metadata + collaborative edges)
-│   │   ├── transe.py                # TransE embedding training (PyTorch)
-│   │   ├── kg_features.py           # Hand-crafted KG features (IDF-weighted)
-│   │   ├── kg_embedding_features.py # TransE embedding-based features
-│   │   └── content_similarity.py    # Sentence-Transformer content similarity
-│   ├── ranker/
-│   │   └── ranker.py                # LightGBM ranker (Pointwise + LambdaMART)
-│   ├── evaluation/
-│   │   ├── metrics.py               # Hit@K, NDCG@K, Recall@K, MRR, Coverage
-│   │   └── longtail_analysis.py     # RQ2: head/tail stratified evaluation
-│   └── run_baselines.py             # Baseline model orchestrator
+├── data_prep/
+│   ├── parse_ml1m.py            # ML-1M parsing, filtering, 3-way split
+│   └── fetch_tmdb.py            # TMDB metadata fetch (checkpoint/resume)
+├── models/
+│   ├── item_cf.py               # Item-based Collaborative Filtering
+│   ├── matrix_factorization.py  # BPR Matrix Factorization (PyTorch)
+│   ├── lightgcn.py              # LightGCN (PyTorch)
+│   └── multi_recall.py          # Multi-route recall: CF + KG candidates
+├── kg/
+│   ├── build_kg.py              # KG construction (metadata + collaborative edges)
+│   ├── transe.py                # TransE embedding training (PyTorch)
+│   ├── kg_features.py           # Hand-crafted KG features (IDF-weighted)
+│   ├── kg_embedding_features.py # TransE embedding-based features
+│   └── content_similarity.py    # Sentence-Transformer content similarity
+├── ranker/
+│   └── ranker.py                # LightGBM ranker (Pointwise + LambdaMART)
+├── evaluation/
+│   ├── metrics.py               # Hit@K, NDCG@K, Recall@K, MRR, Coverage
+│   └── longtail_analysis.py     # RQ2: head/tail stratified evaluation
+├── run_baselines.py             # Baseline model orchestrator
+├── run_all.py                   # End-to-end pipeline (Phase 0-4)
+├── app.py                       # Streamlit interactive demo
 ├── results/
-│   └── RESULTS.md                   # Experiment results and analysis
-├── app.py                           # Streamlit interactive demo
-├── run_all.py                       # End-to-end pipeline (Phase 0-4)
-├── PROJECT_OVERVIEW.md              # Research design document
+│   └── RESULTS.md               # Experiment results and analysis
 └── requirements.txt
 ```

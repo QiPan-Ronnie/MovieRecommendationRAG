@@ -6,9 +6,9 @@ import json
 import os
 import pickle
 
-from src.models.item_cf import run_item_cf
-from src.models.matrix_factorization import run_mf
-from src.models.lightgcn import run_lightgcn
+from models.item_cf import run_item_cf
+from models.matrix_factorization import run_mf
+from models.lightgcn import run_lightgcn
 
 
 def main():

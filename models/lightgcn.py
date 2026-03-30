@@ -14,7 +14,7 @@ from torch.utils.data import Dataset, DataLoader
 from collections import defaultdict
 from scipy.sparse import coo_matrix
 
-from src.evaluation.metrics import evaluate_all, print_results
+from evaluation.metrics import evaluate_all, print_results
 
 
 class BPRSampler(Dataset):
