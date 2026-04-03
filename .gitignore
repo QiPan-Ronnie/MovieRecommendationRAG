@@ -37,7 +37,8 @@ results/*
 !results/longtail_analysis.json
 
 # Keep: Phase 2 RAG inputs
-!results/recommendations.csv
+!results/recommendations_v2.csv
+!results/recommendations_v4.csv
 !results/rag_eval_set.json
 
 # Keep: recall model scores (for reproducibility)

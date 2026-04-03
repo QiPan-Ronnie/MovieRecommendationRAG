@@ -15,8 +15,11 @@
 
 | File | Description |
 |------|-------------|
-| `recommendations.csv` | Per-user top-10 ranked list from V4 LambdaMART (5,950 users, columns: user_id, movie_id, rank, pred_score, label) |
-| `rag_eval_set.json` | 200 sampled users with watch history (10 movies) + recommendations (10 movies) + movie overviews + gold labels |
+| `recommendations_v4.csv` | Per-user top-10 from V4 LambdaMART (CF+Content+KG+Emb, best model) |
+| `recommendations_v2.csv` | Per-user top-10 from V2 LambdaMART (CF+Content, no KG — for RQ4 comparison) |
+| `rag_eval_set.json` | 200 sampled users with watch history (10 movies) + V4 recommendations + movie overviews + gold labels |
+
+Recommendation CSV columns: `user_id, movie_id, rank, pred_score, label` (5,950 users x 10 = 59,500 rows)
 
 ## Recall Model Scores
 
