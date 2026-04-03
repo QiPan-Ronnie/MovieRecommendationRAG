@@ -1,104 +1,107 @@
 # KG-RAG Enhanced Movie Recommendation
 
-> Investigating whether Knowledge Graphs and Retrieval-Augmented Generation improve recommendation accuracy and explanation faithfulness.
+A two-stage (recall + re-rank) movie recommendation system on MovieLens 1M, enhanced by Knowledge Graph (KG) features and RAG-based explanations. Phase 1 (KG-enhanced recommendation) is complete; Phase 2 (RAG-based explanation) is planned.
 
-## Experiment Goals
+## What This Project Does
 
-This project builds a two-stage (recall + re-rank) movie recommendation system on MovieLens 1M, enhanced by Knowledge Graph (KG) features and RAG-based explanations. We address four research questions in two phases:
-
-**Phase 1 — KG-Enhanced Recommendation (Complete)**
-- **RQ1**: Does KG-enhanced re-ranking significantly outperform CF and content baselines?
-- **RQ2**: Does KG disproportionately benefit long-tail items?
-
-**Phase 2 — RAG-Based Explanation (Planned)**
-- **RQ3**: Are RAG-generated explanations more faithful than prompt-only LLM explanations?
-- **RQ4**: Are structured (KG) and unstructured (RAG) knowledge complementary for explainability?
+1. **Recall stage**: Item-CF generates top-70 candidates, KG (RotatE) embeddings add top-50 more, merged to 100 candidates per user
+2. **Re-ranking stage**: LightGBM re-ranks candidates using CF scores, content similarity, and KG features (hand-crafted + RotatE embeddings)
+3. **Evaluation**: Ablation study comparing feature sets (V1→V4), statistical significance tests, long-tail analysis
 
 ## Key Results (Phase 1)
 
-| Finding | Result |
-|---------|--------|
-| **RQ1**: KG vs CF baseline | V3 vs V2: p=0.026 (Pointwise), p=0.045 (LambdaMART) |
-| **RQ1**: Best Recall@10 | V4 LambdaMART: **0.1976** (vs Recall-only 0.1817, +8.8%) |
-| **RQ2**: Tail lift vs head lift | **3.5x** higher for tail items (V3 vs V1) |
-| **RQ2**: Low-entropy user lift | **+52%** Recall@10 (vs +6% for high-entropy users) |
-| KG feature importance share | **28.4%** of total LightGBM gain |
+| | NDCG@10 | Recall@10 | Hit@10 |
+|--|---------|-----------|--------|
+| Recall-only (no re-ranking) | 0.1451 | 0.1817 | 0.5141 |
+| V2: CF + Content features | 0.1365 | 0.1879 | 0.5253 |
+| V3: + KG hand-crafted features | 0.1415 | 0.1948 | 0.5215 |
+| **V4: + KG RotatE embeddings** | **0.1429** | **0.1986** | **0.5292** |
 
-See [`results/RESULTS.md`](results/RESULTS.md) for full experimental results.
+- KG features significantly improve re-ranking: V3 vs V2 p=0.026 (Pointwise), p=0.045 (LambdaMART)
+- KG helps long-tail items **3.5x more** than head items (tail Recall@10: 0.033 → 0.167)
+- KG features account for **28.4%** of total LightGBM feature importance
 
-## Quick Start
+See [`results/RESULTS.md`](results/RESULTS.md) for full results, or [`results/RESULTS_ZH.md`](results/RESULTS_ZH.md) for Chinese version.
 
-### Option A: Use Pre-computed Data (Recommended)
+## Setup
 
-Download [`data_release.tar.gz`](https://github.com/XqFeng-Josie/MovieRecommendation/releases) and extract:
+**Requirements**: Python >= 3.10, ~8GB RAM. GPU optional (only accelerates Phase 1 baseline training).
 
 ```bash
-# 1. Environment
+# Create environment
 python -m venv movie_env && source movie_env/bin/activate
 pip install -r requirements.txt
 
-# 2. Data: download ML-1M and extract pre-computed data
-# Download ML-1M from https://grouplens.org/datasets/movielens/1m/ to data/raw/ml-1m/
-tar xzf data_release.tar.gz
+# Download MovieLens 1M
+# Get ml-1m.zip from https://grouplens.org/datasets/movielens/1m/
+# Unzip to data/raw/ml-1m/ (should contain ratings.dat, movies.dat, users.dat)
 
-# 3. Run ranker ablation + long-tail analysis directly (skip Phase 0-2)
-python run_all.py --phase 3    # Ranker ablation (~10 min)
-python run_all.py --phase 4    # Long-tail analysis (~5 min)
-```
-
-### Option B: Run Full Pipeline from Scratch
-
-```bash
-# 1. Environment
-python -m venv movie_env && source movie_env/bin/activate
-pip install -r requirements.txt
-
-# 2. Data: download ML-1M to data/raw/ml-1m/, set TMDB key
+# Set TMDB API key (for fetching movie metadata)
 export TMDB_API_KEY=your_key_here
-
-# 3. Run full pipeline
-python run_all.py
-
-# Or run individual phases
-python run_all.py --phase 0    # Data prep
-python run_all.py --phase 1    # Recall baselines (requires GPU)
-python run_all.py --phase 2    # KG + multi-recall + features
-python run_all.py --phase 3    # Ranker ablation
-python run_all.py --phase 4    # Long-tail analysis
 ```
 
-### Data Contents
+## Running Experiments
 
-The `data_release.tar.gz` (123MB) contains all intermediate outputs so you can skip expensive computation:
+### Full pipeline (from scratch, ~2 hours)
 
-| Directory | Contents | Size |
-|-----------|----------|------|
-| `data/tmdb/` | TMDB metadata (3,652 movies) | 2MB |
-| `data/processed/` | Train/val/test splits, recall candidates, content similarity, movie embeddings | 76MB |
-| `data/kg/` | KG graph, triples, TransE embeddings, KG features | 184MB |
-| `results/` | Recall model scores, ablation results, feature importance | 69MB |
+```bash
+python run_all.py
+```
+
+### Run individual phases
+
+```bash
+python run_all.py --phase 0    # Data prep: parse ML-1M, fetch TMDB metadata
+python run_all.py --phase 1    # Recall baselines: Item-CF, BPR-MF, LightGCN
+python run_all.py --phase 2    # KG: build graph, train RotatE, multi-recall, features
+python run_all.py --phase 3    # Ranker: LightGBM ablation (V1-V4, Pointwise + LambdaMART)
+python run_all.py --phase 4    # Analysis: head/tail stratified evaluation
+```
+
+### Skip expensive steps (use pre-computed data)
+
+If you have `data/` and `results/` directories pre-populated (e.g., from a shared archive), you can skip directly to the ranker and analysis:
+
+```bash
+python run_all.py --phase 3    # ~10 min
+python run_all.py --phase 4    # ~5 min
+```
+
+### Interactive demo
+
+```bash
+streamlit run app.py
+```
 
 ## Pipeline Architecture
 
 ```
 [Phase 0] Data Preparation
-    Parse ML-1M, filter rating >= 4, time-based split (70/10/20)
+    MovieLens 1M → filter rating >= 4 → per-user time-based split (70/10/20)
+    TMDB API → movie metadata (genres, actors, directors, year)
 
 [Phase 1] Recall Baselines
-    Item-CF / BPR-MF / LightGCN -> top-100 candidates per user
+    Item-CF / BPR-MF / LightGCN → top-100 candidates per user
+    Evaluated on full catalog (~3,125 movies)
 
-[Phase 2] KG + Multi-Route Recall + Features
-    Build KG (134K triples: co_liked, genre, actor, director, decade)
-    Train TransE embeddings (128-dim, 5 relations)
-    Multi-route recall: CF top-70 + KG top-50 -> 100 candidates
-    Features: content similarity, KG (raw + IDF), KG embeddings
+[Phase 2] KG + Multi-Route Recall + Feature Engineering
+    Build KG: 134K triples (co_liked, has_genre, acted_by, directed_by, released_in_decade)
+    Train RotatE: 128-dim embeddings, balanced relation sampling, 300 epochs
+    Multi-recall: Item-CF top-70 + KG top-50 → 100 candidates/user
+    Features: content similarity (Sentence-Transformer), KG hand-crafted (IDF-weighted),
+              KG embeddings (RotatE distance/cosine to user history)
 
 [Phase 3] Ranker Ablation
-    V1 (CF) -> V2 (+Content) -> V3 (+KG) -> V3e (+KGEmb) -> V4 (+All)
-    Pointwise + LambdaMART, statistical significance tests
+    LightGBM re-ranking with distribution-matched training
+    V1 (CF) → V2 (+Content) → V3 (+KG) → V3e (+KGEmb) → V4 (+All)
+    Both Pointwise and LambdaMART objectives, paired t-tests for significance
 
-[Phase 4] Long-tail Analysis (RQ2)
+[Phase 4] Long-tail Analysis
     Head/tail stratified Recall@10, user genre entropy analysis
+
+[Phase 5] RAG-Based Explanation (Planned)
+    Retrieve KG evidence + unstructured reviews → LLM-generated explanations
+    Evaluate explanation faithfulness vs prompt-only baselines
 ```
 
 ## Project Structure
@@ -107,7 +110,7 @@ The `data_release.tar.gz` (123MB) contains all intermediate outputs so you can s
 MovieRecommendation/
 ├── data_prep/
 │   ├── parse_ml1m.py            # ML-1M parsing, filtering, 3-way split
-│   └── fetch_tmdb.py            # TMDB metadata fetch (checkpoint/resume)
+│   └── fetch_tmdb.py            # TMDB metadata fetch (with checkpoint/resume)
 ├── models/
 │   ├── item_cf.py               # Item-based Collaborative Filtering
 │   ├── matrix_factorization.py  # BPR Matrix Factorization (PyTorch)
@@ -115,19 +118,35 @@ MovieRecommendation/
 │   └── multi_recall.py          # Multi-route recall: CF + KG candidates
 ├── kg/
 │   ├── build_kg.py              # KG construction (metadata + collaborative edges)
-│   ├── transe.py                # TransE embedding training (PyTorch)
+│   ├── rotate.py                # RotatE embedding training (default)
+│   ├── transe.py                # TransE embedding training (baseline comparison)
 │   ├── kg_features.py           # Hand-crafted KG features (IDF-weighted)
-│   ├── kg_embedding_features.py # TransE embedding-based features
+│   ├── kg_embedding_features.py # KG embedding-based features
 │   └── content_similarity.py    # Sentence-Transformer content similarity
 ├── ranker/
 │   └── ranker.py                # LightGBM ranker (Pointwise + LambdaMART)
 ├── evaluation/
 │   ├── metrics.py               # Hit@K, NDCG@K, Recall@K, MRR, Coverage
-│   └── longtail_analysis.py     # RQ2: head/tail stratified evaluation
-├── run_baselines.py             # Baseline model orchestrator
-├── run_all.py                   # End-to-end pipeline (Phase 0-4)
-├── app.py                       # Streamlit interactive demo
+│   └── longtail_analysis.py     # Head/tail stratified evaluation
+├── experiments/                 # Experiment scripts (KG recall ablations)
+├── docs/
+│   ├── PROJECT_OVERVIEW.md      # Detailed research design
+│   ├── PROJECT_OVERVIEW_ZH.md   # Chinese version
+│   └── EXPERIMENT_LOG.md        # Experiment log with negative results
 ├── results/
-│   └── RESULTS.md               # Experiment results and analysis
+│   ├── RESULTS.md               # Full experiment results and analysis
+│   └── RESULTS_ZH.md            # Chinese version
+├── run_all.py                   # End-to-end pipeline (Phase 0-4)
+├── run_baselines.py             # Baseline model runner
+├── app.py                       # Streamlit interactive demo
 └── requirements.txt
 ```
+
+## Research Questions
+
+| RQ | Question | Status | Answer |
+|----|----------|--------|--------|
+| **RQ1** | Does KG-enhanced re-ranking outperform CF/content baselines? | Done | Yes (p < 0.05) |
+| **RQ2** | Does KG disproportionately help long-tail items? | Done | Yes (3.5x tail lift vs head) |
+| **RQ3** | Are RAG explanations more faithful than prompt-only? | Planned | — |
+| **RQ4** | Are structured + unstructured knowledge complementary? | Planned | — |

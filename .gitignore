@@ -48,7 +48,11 @@ __MACOSX/
 *.pkl
 *.npy
 *.zip
+*.tar
 *.tar.gz
+
+# Experiment backups and intermediate results
+backup/
 
 # Claude Code
 .claude/

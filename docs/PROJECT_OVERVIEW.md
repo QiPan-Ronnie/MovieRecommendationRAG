@@ -151,7 +151,7 @@ Constructed from TMDB metadata + user co-interaction patterns + temporal data:
 | `released_in_decade` | 3,652 | TMDB year | (Toy Story, released_in_decade, 1990s) |
 | **Total** | **134,447** | | |
 
-The collaborative `co_liked` edges bridge CF signal into the KG, enabling TransE embeddings to capture both structural metadata and user behavior patterns.
+The collaborative `co_liked` edges bridge CF signal into the KG, enabling RotatE embeddings to capture both structural metadata and user behavior patterns.
 
 ### 4.4 RAG Evidence Corpus (Phase 2)
 

@@ -1,8 +1,8 @@
 """
 Compute KG embedding-based features for (user, candidate_movie) pairs.
 
-Uses TransE entity embeddings to compute similarity between candidate movies
-and user history in the KG embedding space.
+Uses KG entity embeddings (RotatE or TransE) to compute similarity between
+candidate movies and user history in the embedding space.
 
 User history is always derived from TRAINING set only.
 """
@@ -13,11 +13,11 @@ from collections import defaultdict
 from tqdm import tqdm
 
 
-def load_transe_embeddings(
+def load_kg_embeddings(
     emb_path="data/kg/transe_entity_emb.npy",
     entity2id_path="data/kg/entity2id.csv",
 ):
-    """Load TransE entity embeddings and entity-to-index mapping."""
+    """Load KG entity embeddings (RotatE or TransE) and entity-to-index mapping."""
     embeddings = np.load(emb_path)
     entity2id_df = pd.read_csv(entity2id_path)
     entity2id = dict(zip(entity2id_df["entity"], entity2id_df["entity_id"]))
@@ -37,7 +37,7 @@ def load_transe_embeddings(
     norms[norms == 0] = 1
     emb_normed = embeddings / norms
 
-    print(f"TransE embeddings: {embeddings.shape}, movies mapped: {len(movie2idx)}")
+    print(f"KG embeddings: {embeddings.shape}, movies mapped: {len(movie2idx)}")
     return embeddings, emb_normed, movie2idx
 
 
@@ -137,7 +137,7 @@ def build_train_user_history(train_path="data/processed/train.csv", max_history=
 
 
 def main():
-    embeddings, emb_normed, movie2idx = load_transe_embeddings()
+    embeddings, emb_normed, movie2idx = load_kg_embeddings()
     user_history = build_train_user_history()
 
     splits = [

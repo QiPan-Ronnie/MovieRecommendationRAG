@@ -1,6 +1,6 @@
 # Phase 1 Experiment Results: KG-Enhanced Recommendation
 
-> Last updated: 2026-03-29
+> Last updated: 2026-04-02
 
 ---
 
@@ -15,8 +15,8 @@
 | Train / Val / Test | 398,867 / 54,680 / 120,179 (70/10/20, per-user time-based) |
 | **KG triples** | **134,447** (`co_liked`: 100K, `acted_by`: 18K, `has_genre`: 8.9K, `directed_by`: 3.9K, `released_in_decade`: 3.7K) |
 | KG entities | 14,258 (movies: 3,652, actors: 8,578, directors: 1,999, genres: 19, decades: 10) |
-| TransE dim | 128 (200 epochs, 5 relation types) |
-| Multi-route recall | Item-CF top-70 + KG (TransE) top-50 → 100 per user |
+| KG embedding model | RotatE (128-dim, 300 epochs, balanced relation sampling) |
+| Multi-route recall | Item-CF top-70 + KG (RotatE) top-50 → 100 per user |
 | Recall movie coverage | 1,351 (was 1,105 with CF-only) |
 | Recall source breakdown | CF-only: 61.0%, KG-only: 30.0%, Both: 9.0% |
 | Test recall positive rate | 4.5% (26,574 / 594,971) |
@@ -39,7 +39,7 @@ Evaluated on full catalog (~3,125 movies), top-10.
 
 ### 3.1 Evaluation Protocol
 
-- **Multi-route recall**: Item-CF top-70 + KG (TransE) top-50, merged to 100 per user
+- **Multi-route recall**: Item-CF top-70 + KG (RotatE) top-50, merged to 100 per user
 - **Distribution-matched training**: ranker trains/evals on recall candidates (not random negatives)
 - **Training labels**: val-period interactions (80% users train, 20% val); **Test labels**: test-period interactions
 
@@ -64,8 +64,8 @@ KG design innovations: collaborative `co_liked` edges bridge CF signal into KG; 
 | V1 (CF) | 0.1209 | 0.1531 | 0.4755 | 0.1833 |
 | V2 (CF+Content) | 0.1310 | 0.1748 | 0.5072 | 0.1910 |
 | **V3 (CF+Content+KG)** | 0.1362 | **0.1849** | 0.5134 | 0.1940 |
-| V3e (CF+Content+KGEmb) | 0.1288 | 0.1717 | 0.5034 | 0.1874 |
-| V4 (CF+Content+KG+Emb) | 0.1336 | 0.1828 | 0.5081 | 0.1884 |
+| V3e (CF+Content+KGEmb) | 0.1306 | 0.1753 | 0.4955 | 0.1871 |
+| V4 (CF+Content+KG+Emb) | 0.1355 | 0.1821 | 0.5058 | 0.1947 |
 
 ### 3.4 Ablation Results (LambdaMART)
 
@@ -75,8 +75,8 @@ KG design innovations: collaborative `co_liked` edges bridge CF signal into KG; 
 | V1 (CF) | 0.1267 | 0.1674 | 0.4938 | 0.1838 |
 | V2 (CF+Content) | 0.1365 | 0.1879 | 0.5253 | 0.1953 |
 | **V3 (CF+Content+KG)** | **0.1415** | **0.1948** | 0.5215 | 0.1958 |
-| V3e (CF+Content+KGEmb) | 0.1306 | 0.1761 | 0.5074 | 0.1896 |
-| **V4 (CF+Content+KG+Emb)** | 0.1428 | 0.1976 | **0.5324** | **0.1989** |
+| V3e (CF+Content+KGEmb) | 0.1374 | 0.1892 | 0.5162 | 0.1907 |
+| **V4 (CF+Content+KG+Emb)** | **0.1429** | **0.1986** | **0.5292** | **0.1960** |
 
 ### 3.5 Statistical Significance
 
@@ -105,16 +105,17 @@ KG design innovations: collaborative `co_liked` edges bridge CF signal into KG; 
 
 ### 3.7 V3e Analysis: Hand-Crafted vs Learned KG Features
 
-V3e (TransE embedding features only) consistently underperforms V3 (hand-crafted KG features):
+V3e uses KG embedding features only (4 aggregate features: mean/min distance, mean/max cosine similarity). With TransE, V3e significantly underperformed V3. After replacing TransE with **RotatE** (which models relations as rotations in complex space, handling symmetric and N-to-N relations), V3e improved substantially:
 
-| | V3 (Hand-Crafted) | V3e (TransE Emb) | Difference |
-|---|---|---|---|
-| Pointwise NDCG@10 | **0.1362** | 0.1288 | -0.0074 |
-| LambdaMART NDCG@10 | **0.1415** | 0.1306 | -0.0109 |
+| | V3 (Hand-Crafted) | V3e (TransE) | V3e (RotatE) | RotatE vs TransE |
+|---|---|---|---|---|
+| Pointwise NDCG@10 | **0.1362** | 0.1288 | 0.1306 | +1.4% |
+| LambdaMART NDCG@10 | **0.1415** | 0.1306 | 0.1374 | **+5.2%** |
+| LambdaMART Recall@10 | **0.1948** | 0.1761 | 0.1892 | **+7.4%** |
 
-This indicates that compressing KG structure into 4 aggregate embedding features (mean/min distance, mean/max cosine) loses significant information compared to 10+ explicit graph features with semantic meaning. The hand-crafted features preserve interpretable signals (same director, shared rare actor, decade match) that TransE embeddings collapse into a single vector space.
+RotatE embedding features are **4-6x more useful** to LightGBM than TransE ones (measured by feature importance gain). The V3e gap vs V3 narrowed from -0.0109 to -0.0041 in LambdaMART NDCG@10, showing RotatE embeddings capture much richer relational structure.
 
-However, V4 (combining both) shows marginal improvement over V3 in LambdaMART (0.1428 vs 0.1415), suggesting the embedding features capture some complementary signal.
+V4 (combining hand-crafted + RotatE embedding features) achieves the best overall result: **LambdaMART Recall@10 = 0.1986** (vs 0.1976 with TransE), confirming the two feature types are complementary.
 
 ---
 
@@ -163,7 +164,7 @@ Entropy terciles: low <= 2.99, mid <= 3.32, high > 3.32.
 
 **Confirmed.** V3 significantly outperforms V2 in both Pointwise (p=0.026) and LambdaMART (p=0.045). KG features account for 28.4% of total feature importance in LightGBM.
 
-V3 Recall@10 surpasses Recall-only: **0.1849 vs 0.1817 (Pointwise)** and **0.1948 vs 0.1817 (LambdaMART)**. V3 does not beat Recall-only on NDCG@10 (0.1415 vs 0.1451, p=0.265), reflecting a trade-off: KG features improve recall (more relevant items surfaced) at a small cost to top-position precision.
+V3 Recall@10 surpasses Recall-only: **0.1849 vs 0.1817 (Pointwise)** and **0.1948 vs 0.1817 (LambdaMART)**. V4 with RotatE embeddings achieves the best Recall@10: **0.1986 (+9.3% vs Recall-only)**. V3 does not beat Recall-only on NDCG@10 (0.1415 vs 0.1451, p=0.265), reflecting a trade-off: KG features improve recall (more relevant items surfaced) at a small cost to top-position precision.
 
 ### RQ2: Does KG disproportionately help long-tail items?
 
@@ -184,6 +185,7 @@ V3 Recall@10 surpasses Recall-only: **0.1849 vs 0.1817 (Pointwise)** and **0.194
 | **Co-liked edges** (100K) | Bridged CF and KG; `co_liked_sum` = 3.7% gain share |
 | **IDF weighting** | `genre_idf_sum` = 6.2% gain; rare-entity sharing more informative than raw count |
 | **Decade relations** | `same_decade_ratio` = 6.3% gain; temporal preference is a strong signal |
+| **RotatE embeddings** | 4-6x more useful than TransE; V3e LambdaMART +7.4% Recall@10 |
 
 ---
 
@@ -193,7 +195,7 @@ V3 Recall@10 surpasses Recall-only: **0.1849 vs 0.1817 (Pointwise)** and **0.194
 Training on random negatives causes distribution mismatch (cf_score=0 for 97% of negatives, making it a trivial discriminator). Fix: both training and evaluation use recall model's top-100 candidates. Training labels from val-period interactions, test labels from test-period interactions. This ensures the ranker learns patterns that transfer to the realistic re-ranking setting.
 
 ### Multi-Route Recall
-Item-CF top-70 + KG (TransE nearest-neighbor) top-50, merged to 100 per user. CF items ordered by cf_score first, then KG-only items by TransE similarity. KG-only items receive cf_score=0 and a separate `kg_recall_score` feature. This improved movie coverage from 1,105 to 1,351 (829 KG-only unique movies).
+Item-CF top-70 + KG (RotatE nearest-neighbor) top-50, merged to 100 per user. CF items ordered by cf_score first, then KG-only items by RotatE similarity. KG-only items receive cf_score=0 and a separate `kg_recall_score` feature. This improved movie coverage from 1,105 to 1,351 (829 KG-only unique movies).
 
 ### KG Enrichment
 5 relation types (134K triples): metadata relations (genre, actor, director), temporal relations (decade), and collaborative relations (co_liked from training data, threshold >= 10 shared users). IDF weighting (IDF = log(N_movies / df_entity)) distinguishes rare vs common entity sharing.

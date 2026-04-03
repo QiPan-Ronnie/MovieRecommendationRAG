@@ -2,7 +2,7 @@
 Multi-route recall: CF + KG-based candidate generation.
 
 Route 1 (CF): Item-CF top-K candidates — captures collaborative signal, biased toward popular items.
-Route 2 (KG): TransE nearest neighbors — captures KG structure, better coverage for tail items.
+Route 2 (KG): KG embedding nearest neighbors — captures KG structure, better coverage for tail items.
 
 Merged into top-100 candidates per user with both cf_score and kg_recall_score.
 """
@@ -13,11 +13,11 @@ from collections import defaultdict
 from tqdm import tqdm
 
 
-def load_transe_for_recall(
+def load_kg_embeddings_for_recall(
     emb_path="data/kg/transe_entity_emb.npy",
     entity2id_path="data/kg/entity2id.csv",
 ):
-    """Load TransE embeddings and build movie_id -> embedding index mapping."""
+    """Load KG embeddings and build movie_id -> embedding index mapping."""
     embeddings = np.load(emb_path)
     entity2id_df = pd.read_csv(entity2id_path)
     entity2id = dict(zip(entity2id_df["entity"], entity2id_df["entity_id"]))
@@ -42,9 +42,9 @@ def load_transe_for_recall(
 def kg_recall_for_user(user_history, movie2idx, emb_normed,
                        all_movie_ids, exclude_set, n_candidates=50):
     """
-    KG-based recall for a single user using TransE embeddings.
+    KG-based recall for a single user using KG embeddings.
 
-    Returns list of (movie_id, transe_score) sorted by similarity desc.
+    Returns list of (movie_id, kg_score) sorted by similarity desc.
     """
     # Build user profile: mean of history movie embeddings
     valid_indices = [movie2idx[mid] for mid in user_history if mid in movie2idx]
@@ -102,7 +102,7 @@ def generate_multi_recall(
     """
     Generate multi-route recall candidates for all users.
 
-    Combines recall model top-n_cf with KG TransE top-n_kg, deduplicates,
+    Combines recall model top-n_cf with KG embedding top-n_kg, deduplicates,
     and outputs top-n_total candidates per user.
     """
     # Auto-detect best recall model if not specified
@@ -122,8 +122,8 @@ def generate_multi_recall(
         sorted_g = group.sort_values("cf_score", ascending=False)
         cf_by_user[uid] = list(zip(sorted_g["movie_id"], sorted_g["cf_score"]))
 
-    # Load TransE
-    emb_normed, movie2idx = load_transe_for_recall()
+    # Load KG embeddings
+    emb_normed, movie2idx = load_kg_embeddings_for_recall()
     all_kg_movies = sorted(movie2idx.keys())
     print(f"  CF covers {cf_df.movie_id.nunique()} movies, KG covers {len(all_kg_movies)} movies")
 
