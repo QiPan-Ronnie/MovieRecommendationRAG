@@ -1,0 +1,21 @@
+{
+  "total_candidates": 595000,
+  "total_movies": 1844,
+  "overall_hit_rate": 0.04985378151260504,
+  "cf_only_count": 302130,
+  "cf_only_hit_rate": 0.0549862641909112,
+  "kg_only_count": 178500,
+  "kg_only_hit_rate": 0.034823529411764705,
+  "both_count": 114370,
+  "both_hit_rate": 0.05975343184401504,
+  "total_positives_captured": 29663,
+  "kg_unique_positives": 6216,
+  "kg_score_pos_mean": 0.7788615661939897,
+  "kg_score_neg_mean": 0.7732146575520702,
+  "kg_score_discrimination": 0.005646908641919524,
+  "kg_score_std": 0.04919706932592103,
+  "Recall@10": 0.06414829677751552,
+  "NDCG@10": 0.09740746502091135,
+  "Hit@10": 0.473109243697479,
+  "Recall@20": 0.11000253330225072
+}
