@@ -60,11 +60,12 @@ python run_all.py --phase 4    # Analysis: head/tail stratified evaluation
 
 ### Skip expensive steps (use pre-computed data)
 
-If you have `data/` and `results/` directories pre-populated (e.g., from a shared archive), you can skip directly to the ranker and analysis:
+Download pre-computed `data/` from: [百度网盘 data.tar](https://pan.baidu.com/s/1KhquNe0TCl_aGkg-lz-b2Q?pwd=6bin) (提取码: 6bin)
 
 ```bash
-python run_all.py --phase 3    # ~10 min
-python run_all.py --phase 4    # ~5 min
+tar xf data.tar    # Extracts to data/
+python run_all.py --phase 3    # Ranker ablation (~10 min)
+python run_all.py --phase 4    # Long-tail analysis (~5 min)
 ```
 
 ### Interactive demo
