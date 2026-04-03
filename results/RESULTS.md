@@ -15,8 +15,8 @@
 | Train / Val / Test | 398,867 / 54,680 / 120,179 (70/10/20, per-user time-based) |
 | **KG triples** | **134,447** (`co_liked`: 100K, `acted_by`: 18K, `has_genre`: 8.9K, `directed_by`: 3.9K, `released_in_decade`: 3.7K) |
 | KG entities | 14,258 (movies: 3,652, actors: 8,578, directors: 1,999, genres: 19, decades: 10) |
-| KG embedding model | RotatE (128-dim, 300 epochs, balanced relation sampling) |
-| Multi-route recall | Item-CF top-70 + KG (RotatE) top-50 → 100 per user |
+| KG embedding model | RotatE for ranker features; TransE for recall candidate generation |
+| Multi-route recall | Item-CF top-70 + KG (TransE cosine) top-50 → 100 per user |
 | Recall movie coverage | 1,351 (was 1,105 with CF-only) |
 | Recall source breakdown | CF-only: 61.0%, KG-only: 30.0%, Both: 9.0% |
 | Test recall positive rate | 4.5% (26,574 / 594,971) |
@@ -39,7 +39,7 @@ Evaluated on full catalog (~3,125 movies), top-10.
 
 ### 3.1 Evaluation Protocol
 
-- **Multi-route recall**: Item-CF top-70 + KG (RotatE) top-50, merged to 100 per user
+- **Multi-route recall**: Item-CF top-70 + KG (TransE) top-50, merged to 100 per user
 - **Distribution-matched training**: ranker trains/evals on recall candidates (not random negatives)
 - **Training labels**: val-period interactions (80% users train, 20% val); **Test labels**: test-period interactions
 
@@ -195,7 +195,7 @@ V3 Recall@10 surpasses Recall-only: **0.1849 vs 0.1817 (Pointwise)** and **0.194
 Training on random negatives causes distribution mismatch (cf_score=0 for 97% of negatives, making it a trivial discriminator). Fix: both training and evaluation use recall model's top-100 candidates. Training labels from val-period interactions, test labels from test-period interactions. This ensures the ranker learns patterns that transfer to the realistic re-ranking setting.
 
 ### Multi-Route Recall
-Item-CF top-70 + KG (RotatE nearest-neighbor) top-50, merged to 100 per user. CF items ordered by cf_score first, then KG-only items by RotatE similarity. KG-only items receive cf_score=0 and a separate `kg_recall_score` feature. This improved movie coverage from 1,105 to 1,351 (829 KG-only unique movies).
+Item-CF top-70 + KG (TransE nearest-neighbor) top-50, merged to 100 per user. CF items ordered by cf_score first, then KG-only items by TransE similarity. RotatE is used separately for computing embedding-based ranker features (V3e/V4), not for recall candidate generation — see Experiment Log for why this separation performs better. KG-only items receive cf_score=0 and a separate `kg_recall_score` feature. This improved movie coverage from 1,105 to 1,351 (829 KG-only unique movies).
 
 ### KG Enrichment
 5 relation types (134K triples): metadata relations (genre, actor, director), temporal relations (decade), and collaborative relations (co_liked from training data, threshold >= 10 shared users). IDF weighting (IDF = log(N_movies / df_entity)) distinguishes rare vs common entity sharing.

@@ -5,7 +5,7 @@ Run this on the server with GPU.
 Pipeline order:
   Phase 0:   Data preparation (parse, filter, split)
   Phase 1:   Baseline recall models (Item-CF, BPR-MF, LightGCN)
-  Phase 2:   KG construction + RotatE training
+  Phase 2:   KG construction + TransE (recall) + RotatE (features)
   Phase 2.5: Multi-route recall (CF + KG candidates)
   Phase 2.6: Build recall candidates (label with val/test)
   Phase 2.7: Feature engineering for recall candidates
@@ -63,7 +63,7 @@ def run_phase1():
 
 
 def run_phase2():
-    """Phase 2: KG construction, RotatE, multi-recall, candidate labeling, features."""
+    """Phase 2: KG construction, TransE (recall) + RotatE (features), multi-recall, labeling, features."""
     print("\n" + "#" * 60)
     print("# Phase 2: Knowledge Graph + Multi-Route Recall + Features")
     print("#" * 60)
@@ -73,12 +73,12 @@ def run_phase2():
     from kg.build_kg import main as kg_main
     kg_main()
 
-    # 2.2 Train RotatE (replaces TransE — better for symmetric/N-to-N relations)
-    print("\n[2.2] Training RotatE KG embeddings...")
-    from kg.rotate import train_rotate
-    train_rotate(balanced=True, epochs=300, dim=128, gamma=12.0, lr=0.001)
+    # 2.2 Train TransE for recall candidate generation
+    print("\n[2.2] Training TransE KG embeddings (for recall)...")
+    from kg.transe import train_transe
+    train_transe()
 
-    # 2.3 Multi-route recall (best recall model + KG)
+    # 2.3 Multi-route recall (best recall model + KG TransE)
     print("\n[2.3] Generating multi-route recall candidates...")
     from models.multi_recall import generate_multi_recall
     generate_multi_recall()  # auto-detects best recall model (LightGCN > MF > CF)
@@ -111,7 +111,12 @@ def run_phase2():
     from kg.kg_features import main as kg_feat_main
     kg_feat_main()
 
-    print("\n[2.7] Computing KG embedding features (RotatE)...")
+    # 2.7 Train RotatE for embedding features (better than TransE for ranker)
+    print("\n[2.7] Training RotatE KG embeddings (for ranker features)...")
+    from kg.rotate import train_rotate
+    train_rotate(balanced=True, epochs=300, dim=128, gamma=12.0, lr=0.001)
+
+    print("\n[2.8] Computing KG embedding features (RotatE)...")
     from kg.kg_embedding_features import main as kg_emb_main
     kg_emb_main()
 

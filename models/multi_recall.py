@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 
 def load_kg_embeddings_for_recall(
-    emb_path="data/kg/rotate_entity_emb.npy",
+    emb_path="data/kg/transe_entity_emb.npy",
     entity2id_path="data/kg/entity2id.csv",
 ):
     """Load KG embeddings and build movie_id -> embedding index mapping."""

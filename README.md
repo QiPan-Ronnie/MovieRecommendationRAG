@@ -4,11 +4,11 @@ A two-stage (recall + re-rank) movie recommendation system on MovieLens 1M, enha
 
 ## What This Project Does
 
-1. **Recall stage**: Item-CF generates top-70 candidates, KG (RotatE) embeddings add top-50 more, merged to 100 candidates per user
+1. **Recall stage**: Item-CF generates top-70 candidates, KG (TransE) embeddings add top-50 more, merged to 100 candidates per user
 2. **Re-ranking stage**: LightGBM re-ranks candidates using CF scores, content similarity, and KG features (hand-crafted + RotatE embeddings)
 3. **Evaluation**: Ablation study comparing feature sets (V1→V4), statistical significance tests, long-tail analysis
 
-## Key Results (Phase 1)
+## Key Results (Phase 1, LambdaMART)
 
 | | NDCG@10 | Recall@10 | Hit@10 |
 |--|---------|-----------|--------|
@@ -53,7 +53,7 @@ python run_all.py
 ```bash
 python run_all.py --phase 0    # Data prep: parse ML-1M, fetch TMDB metadata
 python run_all.py --phase 1    # Recall baselines: Item-CF, BPR-MF, LightGCN
-python run_all.py --phase 2    # KG: build graph, train RotatE, multi-recall, features
+python run_all.py --phase 2    # KG: build graph, TransE recall, RotatE features
 python run_all.py --phase 3    # Ranker: LightGBM ablation (V1-V4, Pointwise + LambdaMART)
 python run_all.py --phase 4    # Analysis: head/tail stratified evaluation
 ```
@@ -86,10 +86,10 @@ streamlit run app.py
 
 [Phase 2] KG + Multi-Route Recall + Feature Engineering
     Build KG: 134K triples (co_liked, has_genre, acted_by, directed_by, released_in_decade)
-    Train RotatE: 128-dim embeddings, balanced relation sampling, 300 epochs
-    Multi-recall: Item-CF top-70 + KG top-50 → 100 candidates/user
+    Train TransE (200 epochs) → multi-recall: Item-CF top-70 + KG top-50 → 100/user
+    Train RotatE (300 epochs, balanced sampling) → embedding features for ranker
     Features: content similarity (Sentence-Transformer), KG hand-crafted (IDF-weighted),
-              KG embeddings (RotatE distance/cosine to user history)
+              KG embeddings (RotatE cosine/distance to user history)
 
 [Phase 3] Ranker Ablation
     LightGBM re-ranking with distribution-matched training
@@ -135,9 +135,12 @@ MovieRecommendation/
 │   └── EXPERIMENT_LOG.md        # Experiment log with negative results
 ├── results/
 │   ├── RESULTS.md               # Full experiment results and analysis
-│   └── RESULTS_ZH.md            # Chinese version
+│   ├── RESULTS_ZH.md            # Chinese version
+│   ├── recommendations_v4.csv   # Per-user top-10 (best model, for Phase 2 RAG)
+│   └── recommendations_v2.csv   # Per-user top-10 (no KG, for RQ4 comparison)
 ├── run_all.py                   # End-to-end pipeline (Phase 0-4)
 ├── run_baselines.py             # Baseline model runner
+├── export_phase1_for_rag.py     # Export recommendations + KG paths for Phase 2
 ├── app.py                       # Streamlit interactive demo
 └── requirements.txt
 ```

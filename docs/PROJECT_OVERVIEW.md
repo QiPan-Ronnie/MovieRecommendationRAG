@@ -85,7 +85,9 @@ A critical design choice is that both training and evaluation use the recall mod
 |---------|----------|---------|
 | **V1** | CF score only | Pure CF baseline for ranker |
 | **V2** | CF score + content similarity + popularity + vote_count | CF + content features |
-| **V3** | CF score + content similarity + popularity + vote_count + KG features | Full KG-enhanced model |
+| **V3** | V2 + hand-crafted KG features | Full KG-enhanced model |
+| **V3e** | V2 + RotatE embedding features | Learned KG representation |
+| **V4** | V3 + V3e (all KG features) | Hand-crafted + learned KG combined |
 
 **KG features** for each (user, candidate_movie) pair, aggregated over the user's training history:
 
