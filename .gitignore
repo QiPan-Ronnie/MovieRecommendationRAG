@@ -16,6 +16,7 @@ env/
 
 # Data (too large for git — download via scripts)
 data/*
+!data/DATA_README.md
 !data/kg/
 data/kg/*
 !data/kg/kg_paths_for_recommendations.json
@@ -27,6 +28,7 @@ results/*
 # Keep: documentation
 !results/RESULTS.md
 !results/RESULTS_ZH.md
+!results/RESULTS_README.md
 
 # Keep: final experiment metrics (small JSON)
 !results/ablation_results.json

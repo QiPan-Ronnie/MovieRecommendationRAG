@@ -190,10 +190,10 @@ def train_rotate(
     relation_phase = model.relation_emb.weight.data.cpu().numpy()
 
     os.makedirs(output_dir, exist_ok=True)
-    np.save(os.path.join(output_dir, "transe_entity_emb.npy"), entity_emb)
-    np.save(os.path.join(output_dir, "transe_relation_emb.npy"), relation_phase)
+    np.save(os.path.join(output_dir, "rotate_entity_emb.npy"), entity_emb)
+    np.save(os.path.join(output_dir, "rotate_relation_emb.npy"), relation_phase)
 
-    with open(os.path.join(output_dir, "transe_relation2id.json"), "w") as f:
+    with open(os.path.join(output_dir, "rotate_relation2id.json"), "w") as f:
         json.dump(relation2id, f)
 
     print(f"  Saved: entity_emb {entity_emb.shape}, relation_phase {relation_phase.shape}")
