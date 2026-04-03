@@ -2,7 +2,7 @@
 Export Phase 1 outputs needed by Phase 2 (RAG explanation).
 
 Generates:
-  1. results/recommendations.csv — Per-user top-10 ranked recommendations (best model)
+  1. results/recommendations_v4.csv — Per-user top-10 ranked recommendations (best model)
   2. results/rag_eval_set.json — Sampled evaluation set for explanation quality assessment
   3. data/kg/kg_paths_for_recommendations.json — KG paths between user history and recommendations
 """
@@ -81,7 +81,7 @@ def export_recommendations(k=10):
             })
 
     rec_df = pd.DataFrame(records)
-    output_path = "results/recommendations.csv"
+    output_path = "results/recommendations_v4.csv"
     rec_df.to_csv(output_path, index=False)
 
     n_users = rec_df.user_id.nunique()
@@ -293,7 +293,7 @@ def main():
     print("\n" + "=" * 60)
     print("  Phase 1 exports for RAG complete!")
     print("=" * 60)
-    print("  results/recommendations.csv        — Per-user top-10 ranked list")
+    print("  results/recommendations_v4.csv        — Per-user top-10 ranked list")
     print("  results/rag_eval_set.json           — 200-user evaluation set")
     print("  data/kg/kg_paths_for_recommendations.json — KG explanation paths")
 
