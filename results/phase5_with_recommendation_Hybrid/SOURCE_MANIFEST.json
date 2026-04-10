@@ -1,0 +1,12 @@
+{
+  "source_results_root": "/root/autodl-tmp/MovieRecommendationRAG/results/phase5_with_recommendations_v4&KG_Path",
+  "source_logs_root": "/root/autodl-tmp/MovieRecommendationRAG/logs/phase5_with_recommendations_v4&KG_Path",
+  "faithfulness_rag_summary.json": "/root/autodl-tmp/MovieRecommendationRAG/results/phase5_with_recommendations_v4&KG_Path/faithfulness_rag/faithfulness_summary.json",
+  "faithfulness_prompt_only_summary.json": "/root/autodl-tmp/MovieRecommendationRAG/results/phase5_with_recommendations_v4&KG_Path/faithfulness_prompt_only/faithfulness_summary.json",
+  "faithfulness_perturbation_summary.json": "/root/autodl-tmp/MovieRecommendationRAG/results/phase5_with_recommendations_v4&KG_Path/faithfulness_perturbation/faithfulness_summary.json",
+  "perturbation_results.jsonl": "/root/autodl-tmp/MovieRecommendationRAG/results/phase5_with_recommendations_v4&KG_Path/perturbation_results.jsonl",
+  "logs/phase52.log": "/root/autodl-tmp/MovieRecommendationRAG/logs/phase5_with_recommendations_v4&KG_Path/phase52.log",
+  "logs/phase53.log": "/root/autodl-tmp/MovieRecommendationRAG/logs/phase5_with_recommendations_v4&KG_Path/phase53.log",
+  "logs/phase54.log": "/root/autodl-tmp/MovieRecommendationRAG/logs/phase5_with_recommendations_v4&KG_Path/phase54.log",
+  "logs/master.log": "/root/autodl-tmp/MovieRecommendationRAG/logs/phase5_with_recommendations_v4&KG_Path/master.log"
+}

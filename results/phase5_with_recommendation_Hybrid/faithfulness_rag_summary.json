@@ -1,0 +1,9 @@
+{
+  "RAG": {
+    "count": 59500,
+    "evidence_overlap": 0.2024,
+    "rouge_l": 0.2345,
+    "semantic_sim": 0.9088,
+    "bert_score_f1": 0.8443
+  }
+}

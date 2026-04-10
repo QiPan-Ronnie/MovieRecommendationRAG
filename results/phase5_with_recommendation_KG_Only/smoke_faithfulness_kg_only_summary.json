@@ -1,0 +1,9 @@
+{
+  "KG_ONLY": {
+    "count": 2,
+    "evidence_overlap": 0.2104,
+    "rouge_l": 0.2636,
+    "semantic_sim": 0.9638,
+    "bert_score_f1": 0.8955
+  }
+}

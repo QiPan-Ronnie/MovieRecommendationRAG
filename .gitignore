@@ -88,3 +88,20 @@ backup/
 
 # Claude Code
 .claude/
+
+# Keep: packaged Phase 5 RAG experiment outputs
+!results/PHASE5_EXPERIMENTS_INDEX.md
+!results/phase5_with_recommendation_Hybrid.md
+!results/phase5_with_recommendation_Retrieval_Only.md
+!results/phase5_with_recommendation_KG_Only.md
+!results/phase5_with_recommendation_Hybrid/
+!results/phase5_with_recommendation_Hybrid/**
+!results/phase5_with_recommendation_Retrieval_Only/
+!results/phase5_with_recommendation_Retrieval_Only/**
+!results/phase5_with_recommendation_Prompt_Only/
+!results/phase5_with_recommendation_Prompt_Only/**
+!results/phase5_with_recommendation_KG_Only/
+!results/phase5_with_recommendation_KG_Only/**
+!results/results_from_kg/
+!results/results_from_kg/recommendations_v2.csv
+!results/results_from_kg/recommendations_v4.csv

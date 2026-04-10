@@ -1,0 +1,20 @@
+{
+  "full_run_status": "completed",
+  "kg_only_records": 59481,
+  "prompt_only_records": 59481,
+  "expected_total_pairs_with_kg_paths": 59481,
+  "phase52_completed": true,
+  "phase53_completed": true,
+  "phase54_completed": true,
+  "phase53_start": "2026-04-10 14:54:36",
+  "phase53_end": "2026-04-10 15:20:45",
+  "phase54_start": "2026-04-10 15:20:45",
+  "phase54_end": "2026-04-10 15:30:50",
+  "canonical_logs": {
+    "phase52": "/root/autodl-tmp/MovieRecommendationRAG/logs/phase5_with_recommendation_KG_Only/phase52.log",
+    "phase53": "/root/autodl-tmp/MovieRecommendationRAG/logs/phase5_with_recommendation_KG_Only/phase53.log",
+    "phase54": "/root/autodl-tmp/MovieRecommendationRAG/logs/phase5_with_recommendation_KG_Only/phase54.log",
+    "master": "/root/autodl-tmp/MovieRecommendationRAG/logs/phase5_with_recommendation_KG_Only/master_phase53_phase54_hf.log"
+  },
+  "note": "KG-only full run completed on CSCI 544 3 using HuggingFace backend for phase 5.3 to avoid the RTX 5090 vLLM/PTX compatibility issue."
+}

@@ -1,0 +1,9 @@
+{
+  "PROMPT_ONLY": {
+    "count": 2,
+    "evidence_overlap": 0.055,
+    "rouge_l": 0.1114,
+    "semantic_sim": 0.9672,
+    "bert_score_f1": 0.8339
+  }
+}

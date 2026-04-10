@@ -1,31 +1,48 @@
 # KG-RAG Enhanced Movie Recommendation
 
-A two-stage (recall + re-rank) movie recommendation system on MovieLens 1M, enhanced by Knowledge Graph (KG) features and RAG-based explanations. Phase 1 (KG-enhanced recommendation) is complete; Phase 2 (RAG-based explanation) is planned.
+A two-stage movie recommendation system on MovieLens 1M that combines KG-enhanced ranking with Phase 2 explanation generation and faithfulness evaluation. The project now includes both the recommendation stack (Phase 1) and the completed explanation ablation suite (Phase 2): `prompt-only`, `retrieval-only RAG`, `KG-only`, and `hybrid KG+RAG`.
 
 ## What This Project Does
 
-1. **Recall stage**: Item-CF generates top-70 candidates, KG (TransE) embeddings add top-50 more, merged to 100 candidates per user
-2. **Re-ranking stage**: LightGBM re-ranks candidates using CF scores, content similarity, and KG features (hand-crafted + RotatE embeddings)
-3. **Evaluation**: Ablation study comparing feature sets (V1→V4), statistical significance tests, long-tail analysis
+1. **Recall stage**: Item-CF generates top-70 candidates, KG (TransE) embeddings add top-50 more, merged to 100 candidates per user.
+2. **Re-ranking stage**: LightGBM re-ranks candidates using CF scores, content similarity, and KG features (hand-crafted + RotatE embeddings).
+3. **Explanation stage**: Generate recommendation explanations under four controlled settings: `prompt-only`, `retrieval-only RAG`, `KG-only`, and `hybrid KG+RAG`.
+4. **Faithfulness evaluation**: Compare explanations using evidence overlap, ROUGE-L, semantic similarity, BERTScore, and perturbation-based stress tests (E1-E4).
 
-## Key Results (Phase 1, LambdaMART)
+## Key Results
 
-| | NDCG@10 | Recall@10 | Hit@10 |
-|--|---------|-----------|--------|
+### Phase 1: Recommendation (LambdaMART)
+
+| Setting | NDCG@10 | Recall@10 | Hit@10 |
+|--|--:|--:|--:|
 | Recall-only (no re-ranking) | 0.1451 | 0.1817 | 0.5141 |
 | V2: CF + Content features | 0.1365 | 0.1879 | 0.5253 |
 | V3: + KG hand-crafted features | 0.1415 | 0.1948 | 0.5215 |
 | **V4: + KG RotatE embeddings** | **0.1429** | **0.1986** | **0.5292** |
 
-- KG features significantly improve re-ranking: V3 vs V2 p=0.026 (Pointwise), p=0.045 (LambdaMART)
-- KG helps long-tail items **3.5x more** than head items (tail Recall@10: 0.033 → 0.167)
-- KG features account for **28.4%** of total LightGBM feature importance
+- KG features significantly improve re-ranking: V3 vs V2 p=0.026 (Pointwise), p=0.045 (LambdaMART).
+- KG helps long-tail items **3.5x more** than head items (tail Recall@10: 0.033 -> 0.167).
+- KG features account for **28.4%** of total LightGBM feature importance.
 
-See [`results/RESULTS.md`](results/RESULTS.md) for full results, or [`results/RESULTS_ZH.md`](results/RESULTS_ZH.md) for Chinese version.
+### Phase 2: Explanation Faithfulness
+
+| Setting | Count | Overlap | ROUGE-L | Sem.Sim | BERTScore |
+|--|--:|--:|--:|--:|--:|
+| Retrieval-only RAG | 59,500 | 0.1452 | 0.1674 | 0.8871 | 0.8391 |
+| Hybrid KG+RAG | 59,500 | **0.2024** | **0.2345** | 0.9088 | 0.8443 |
+| KG-only | 59,481 | 0.2007 | 0.2112 | 0.9452 | **0.8835** |
+| Prompt-only (KG-only companion) | 59,481 | 0.0441 | 0.1063 | 0.9695 | 0.8279 |
+
+- `Hybrid KG+RAG` achieves the strongest overall grounding on overlap- and ROUGE-based metrics.
+- `KG-only` also strongly outperforms `prompt-only`, showing that structured KG paths alone provide useful explanation evidence.
+- Compared with `retrieval-only RAG`, `hybrid KG+RAG` improves overlap from `0.1452` to `0.2024` and ROUGE-L from `0.1674` to `0.2345`, indicating complementary value from structured KG evidence.
+- Perturbation experiments show clear degradation under irrelevant evidence replacement (`E4`), supporting that the model is responding to evidence quality rather than generating generic recommendation language.
+
+See [`results/RESULTS.md`](results/RESULTS.md) for full Phase 1 results and [`results/PHASE5_EXPERIMENTS_INDEX.md`](results/PHASE5_EXPERIMENTS_INDEX.md) for Phase 2 experiment packaging and source manifests.
 
 ## Setup
 
-**Requirements**: Python >= 3.10, ~8GB RAM. GPU optional (only accelerates Phase 1 baseline training).
+**Requirements**: Python >= 3.10, ~8GB RAM for Phase 1 analysis; GPU strongly recommended for explanation generation and evaluation.
 
 ```bash
 # Create environment
@@ -42,13 +59,13 @@ export TMDB_API_KEY=your_key_here
 
 ## Running Experiments
 
-### Full pipeline (from scratch, ~2 hours)
+### Phase 1 recommendation pipeline
 
 ```bash
 python run_all.py
 ```
 
-### Run individual phases
+### Run individual Phase 1 stages
 
 ```bash
 python run_all.py --phase 0    # Data prep: parse ML-1M, fetch TMDB metadata
@@ -58,99 +75,84 @@ python run_all.py --phase 3    # Ranker: LightGBM ablation (V1-V4, Pointwise + L
 python run_all.py --phase 4    # Analysis: head/tail stratified evaluation
 ```
 
-### Skip expensive steps (use pre-computed data)
+### Phase 2 explanation pipeline
 
-Download pre-computed `data/` from: [百度网盘 data.tar](https://pan.baidu.com/s/1KhquNe0TCl_aGkg-lz-b2Q?pwd=6bin) (提取码: 6bin)
+Hybrid KG+RAG scripts:
 
 ```bash
-tar xf data.tar    # Extracts to data/
-python run_all.py --phase 3    # Ranker ablation (~10 min)
-python run_all.py --phase 4    # Long-tail analysis (~5 min)
+bash scripts/phase5_with_recommendations_v4\&KG_Path/phase52.sh
+bash scripts/phase5_with_recommendations_v4\&KG_Path/phase53.sh
+bash scripts/phase5_with_recommendations_v4\&KG_Path/phase54.sh
 ```
 
-### Interactive demo
+KG-only scripts:
 
 ```bash
-streamlit run app.py
+bash scripts/phase5_with_recommendations_KG_Only/phase52.sh
+bash scripts/phase5_with_recommendations_KG_Only/phase53.sh
+bash scripts/phase5_with_recommendations_KG_Only/phase54.sh
 ```
 
 ## Pipeline Architecture
 
 ```
 [Phase 0] Data Preparation
-    MovieLens 1M → filter rating >= 4 → per-user time-based split (70/10/20)
-    TMDB API → movie metadata (genres, actors, directors, year)
+    MovieLens 1M -> filter rating >= 4 -> per-user time-based split (70/10/20)
+    TMDB API -> movie metadata (genres, actors, directors, year)
 
 [Phase 1] Recall Baselines
-    Item-CF / BPR-MF / LightGCN → top-100 candidates per user
+    Item-CF / BPR-MF / LightGCN -> top-100 candidates per user
     Evaluated on full catalog (~3,125 movies)
 
 [Phase 2] KG + Multi-Route Recall + Feature Engineering
     Build KG: 134K triples (co_liked, has_genre, acted_by, directed_by, released_in_decade)
-    Train TransE (200 epochs) → multi-recall: Item-CF top-70 + KG top-50 → 100/user
-    Train RotatE (300 epochs, balanced sampling) → embedding features for ranker
-    Features: content similarity (Sentence-Transformer), KG hand-crafted (IDF-weighted),
-              KG embeddings (RotatE cosine/distance to user history)
+    Train TransE (200 epochs) -> multi-recall: Item-CF top-70 + KG top-50 -> 100/user
+    Train RotatE (300 epochs, balanced sampling) -> embedding features for ranker
 
 [Phase 3] Ranker Ablation
     LightGBM re-ranking with distribution-matched training
-    V1 (CF) → V2 (+Content) → V3 (+KG) → V3e (+KGEmb) → V4 (+All)
-    Both Pointwise and LambdaMART objectives, paired t-tests for significance
+    V1 (CF) -> V2 (+Content) -> V3 (+KG) -> V4 (+All)
 
 [Phase 4] Long-tail Analysis
     Head/tail stratified Recall@10, user genre entropy analysis
 
-[Phase 5] RAG-Based Explanation (Planned)
-    Retrieve KG evidence + unstructured reviews → LLM-generated explanations
-    Evaluate explanation faithfulness vs prompt-only baselines
+[Phase 5] RAG-Based Explanation and Faithfulness Evaluation
+    5.1 Build sentence-level evidence corpus from TMDB metadata
+    5.2 Generate explanations under prompt-only / retrieval-only / KG-only / hybrid settings
+    5.3 Run perturbation experiments (E1-E4)
+    5.4 Evaluate with overlap, ROUGE-L, semantic similarity, and BERTScore
 ```
 
 ## Project Structure
 
 ```
 MovieRecommendation/
-├── data_prep/
-│   ├── parse_ml1m.py            # ML-1M parsing, filtering, 3-way split
-│   └── fetch_tmdb.py            # TMDB metadata fetch (with checkpoint/resume)
-├── models/
-│   ├── item_cf.py               # Item-based Collaborative Filtering
-│   ├── matrix_factorization.py  # BPR Matrix Factorization (PyTorch)
-│   ├── lightgcn.py              # LightGCN (PyTorch)
-│   └── multi_recall.py          # Multi-route recall: CF + KG candidates
-├── kg/
-│   ├── build_kg.py              # KG construction (metadata + collaborative edges)
-│   ├── rotate.py                # RotatE embedding training (default)
-│   ├── transe.py                # TransE embedding training (baseline comparison)
-│   ├── kg_features.py           # Hand-crafted KG features (IDF-weighted)
-│   ├── kg_embedding_features.py # KG embedding-based features
-│   └── content_similarity.py    # Sentence-Transformer content similarity
-├── ranker/
-│   └── ranker.py                # LightGBM ranker (Pointwise + LambdaMART)
-├── evaluation/
-│   ├── metrics.py               # Hit@K, NDCG@K, Recall@K, MRR, Coverage
-│   └── longtail_analysis.py     # Head/tail stratified evaluation
-├── experiments/                 # Experiment scripts (KG recall ablations)
-├── docs/
-│   ├── PROJECT_OVERVIEW.md      # Detailed research design
-│   ├── PROJECT_OVERVIEW_ZH.md   # Chinese version
-│   └── EXPERIMENT_LOG.md        # Experiment log with negative results
-├── results/
-│   ├── RESULTS.md               # Full experiment results and analysis
-│   ├── RESULTS_ZH.md            # Chinese version
-│   ├── recommendations_v4.csv   # Per-user top-10 (best model, for Phase 2 RAG)
-│   └── recommendations_v2.csv   # Per-user top-10 (no KG, for RQ4 comparison)
-├── run_all.py                   # End-to-end pipeline (Phase 0-4)
-├── run_baselines.py             # Baseline model runner
-├── export_phase1_for_rag.py     # Export recommendations + KG paths for Phase 2
-├── app.py                       # Streamlit interactive demo
-└── requirements.txt
+|- data_prep/
+|- models/
+|- kg/
+|- ranker/
+|- evaluation/
+|- rag/                                 # Phase 5 retrieval / generation / evaluation code
+|- scripts/                             # Reusable Phase 5 run scripts
+|- tests/test_phase5_modes.py           # KG-only / phase-mode regression tests
+|- results/
+|  |- RESULTS.md
+|  |- PHASE5_EXPERIMENTS_INDEX.md
+|  |- phase5_with_recommendation_Hybrid/
+|  |- phase5_with_recommendation_Retrieval_Only/
+|  |- phase5_with_recommendation_Prompt_Only/
+|  |- phase5_with_recommendation_KG_Only/
+|  `- results_from_kg/
+|- run_all.py
+|- export_phase1_for_rag.py
+`- requirements.txt
 ```
 
 ## Research Questions
 
-| RQ | Question | Status | Answer |
-|----|----------|--------|--------|
-| **RQ1** | Does KG-enhanced re-ranking outperform CF/content baselines? | Done | Yes (p < 0.05) |
-| **RQ2** | Does KG disproportionately help long-tail items? | Done | Yes (3.5x tail lift vs head) |
-| **RQ3** | Are RAG explanations more faithful than prompt-only? | Planned | — |
-| **RQ4** | Are structured + unstructured knowledge complementary? | Planned | — |
+| RQ | Question | Status | Current Answer |
+|----|----------|--------|----------------|
+| **RQ1** | Does KG-enhanced re-ranking outperform CF/content baselines? | Done | Yes |
+| **RQ2** | Does KG disproportionately help long-tail items? | Done | Yes |
+| **RQ3** | Are evidence-conditioned explanations more faithful than prompt-only? | Done | Yes |
+| **RQ4** | Are structured and unstructured knowledge complementary? | Done | Yes, hybrid KG+RAG performs best overall |
