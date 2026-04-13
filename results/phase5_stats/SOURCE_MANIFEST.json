@@ -1,0 +1,11 @@
+{
+  "package": "phase5_stats",
+  "source_results_dir": "/root/autodl-tmp/MovieRecommendationRAG/results/phase5_stats",
+  "included_files": [
+    "significance_main.csv",
+    "significance_perturbation.csv",
+    "significance_summary.json",
+    "significance_summary.md"
+  ],
+  "notes": "Latest significance-testing outputs on the finalized Phase 5 results."
+}

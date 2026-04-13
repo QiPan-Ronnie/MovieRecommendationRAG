@@ -22,6 +22,8 @@ import numpy as np
 from dataclasses import dataclass
 from tqdm import tqdm
 
+DEFAULT_LOCAL_ROBERTA_DIR = "/root/autodl-tmp/models/roberta-large"
+
 
 # ---------------------------------------------------------------------------
 # Evidence normalization helpers
@@ -125,8 +127,33 @@ def semantic_similarity(explanation: str, evidence_texts: list[str],
     return float(np.mean(sims))
 
 
+def resolve_bertscore_scorer_kwargs(use_local_model: bool,
+                                    local_roberta_dir: str = DEFAULT_LOCAL_ROBERTA_DIR,
+                                    rescale_with_baseline: bool | None = None) -> tuple[str, dict]:
+    """Resolve a single, explicit BERTScore configuration."""
+    effective_rescale = (
+        (not use_local_model) if rescale_with_baseline is None
+        else bool(rescale_with_baseline)
+    )
+
+    if use_local_model:
+        return local_roberta_dir, {
+            "model_type": local_roberta_dir,
+            "num_layers": 17,
+            "lang": None,
+            "rescale_with_baseline": effective_rescale,
+        }
+
+    return "roberta-large", {
+        "lang": "en",
+        "rescale_with_baseline": effective_rescale,
+    }
+
+
 def compute_bertscore(explanations: list[str],
-                      evidence_list: list[list[str]]) -> list[float]:
+                      evidence_list: list[list[str]],
+                      rescale_with_baseline: bool | None = None,
+                      local_roberta_dir: str = DEFAULT_LOCAL_ROBERTA_DIR) -> list[float]:
     """Kept for backward compatibility; main flow uses batched version."""
     try:
         from bert_score import score as bert_score_fn
@@ -134,15 +161,24 @@ def compute_bertscore(explanations: list[str],
         print("WARNING: bert-score not installed.", flush=True)
         return [0.0] * len(explanations)
     references = [" ".join(evs) for evs in evidence_list]
-    local_roberta = "/root/autodl-tmp/models/roberta-large"
-    if os.path.isdir(local_roberta):
-        _, _, f1 = bert_score_fn(explanations, references,
-                                 model_type=local_roberta, num_layers=17,
-                                 lang=None, device="cuda", verbose=False,
-                                 rescale_with_baseline=False)
-    else:
-        _, _, f1 = bert_score_fn(explanations, references, lang="en",
-                                 verbose=False, rescale_with_baseline=True)
+    use_local_model = os.path.isdir(local_roberta_dir)
+    _, scorer_kwargs = resolve_bertscore_scorer_kwargs(
+        use_local_model=use_local_model,
+        local_roberta_dir=local_roberta_dir,
+        rescale_with_baseline=rescale_with_baseline,
+    )
+    try:
+        import torch
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    except Exception:
+        device = "cpu"
+    _, _, f1 = bert_score_fn(
+        explanations,
+        references,
+        device=device,
+        verbose=False,
+        **scorer_kwargs,
+    )
     return f1.tolist()
 
 
@@ -152,7 +188,9 @@ def compute_bertscore(explanations: list[str],
 
 def compute_bertscore_batched(explanations: list[str],
                               evidence_list: list[list[str]],
-                              batch_size: int = 256) -> list[float]:
+                              batch_size: int = 256,
+                              rescale_with_baseline: bool | None = None,
+                              local_roberta_dir: str = DEFAULT_LOCAL_ROBERTA_DIR) -> list[float]:
     """BERTScore in mini-batches with one reusable scorer + live ETA logs."""
     try:
         from bert_score import BERTScorer
@@ -166,27 +204,24 @@ def compute_bertscore_batched(explanations: list[str],
     except Exception:
         device = "cpu"
 
-    local_roberta = "/root/autodl-tmp/models/roberta-large"
-    use_local = os.path.isdir(local_roberta)
-    model_label = local_roberta if use_local else "roberta-large"
+    use_local_model = os.path.isdir(local_roberta_dir)
+    model_label, resolved_kwargs = resolve_bertscore_scorer_kwargs(
+        use_local_model=use_local_model,
+        local_roberta_dir=local_roberta_dir,
+        rescale_with_baseline=rescale_with_baseline,
+    )
     print(f"  BERTScore device: {device}", flush=True)
     print(f"  BERTScore model: {model_label}", flush=True)
+    print(
+        "  BERTScore rescale_with_baseline: "
+        f"{resolved_kwargs['rescale_with_baseline']}",
+        flush=True,
+    )
 
     scorer_kwargs = {
         "device": device,
     }
-    if use_local:
-        scorer_kwargs.update({
-            "model_type": local_roberta,
-            "num_layers": 17,
-            "lang": None,
-            "rescale_with_baseline": False,
-        })
-    else:
-        scorer_kwargs.update({
-            "lang": "en",
-            "rescale_with_baseline": True,
-        })
+    scorer_kwargs.update(resolved_kwargs)
 
     scorer = BERTScorer(**scorer_kwargs)
 
@@ -343,7 +378,8 @@ def _fmt_dur(seconds: float) -> str:
 # ---------------------------------------------------------------------------
 
 def evaluate_faithfulness(explanations: list[dict],
-                          st_model=None) -> list[FaithfulnessResult]:
+                          st_model=None,
+                          bertscore_rescale_with_baseline: bool | None = None) -> list[FaithfulnessResult]:
     """
     4-phase pipeline with real-time progress:
       [1/4] BERTScore       - batched, ETA every 10 batches
@@ -371,7 +407,12 @@ def evaluate_faithfulness(explanations: list[dict],
     print("  [1/4] BERTScore  (roberta-large, device=cpu)", flush=True)
     print(SEP, flush=True)
     t0 = time.time()
-    bert_scores = compute_bertscore_batched(all_exps, all_evs, batch_size=256)
+    bert_scores = compute_bertscore_batched(
+        all_exps,
+        all_evs,
+        batch_size=256,
+        rescale_with_baseline=bertscore_rescale_with_baseline,
+    )
     t1 = time.time()
     mean_bert = float(np.mean(bert_scores)) if bert_scores else 0.0
     print(f"  [完成] 耗时 {_fmt_dur(t1-t0)} | 均值 F1 = {mean_bert:.4f}", flush=True)
@@ -452,7 +493,8 @@ def aggregate_results(results: list[FaithfulnessResult]) -> dict:
 
 
 def save_faithfulness_results(results: list[FaithfulnessResult],
-                               summary: dict, output_dir: str = "results"):
+                               summary: dict, output_dir: str = "results",
+                               metadata: dict | None = None):
     os.makedirs(output_dir, exist_ok=True)
     detail_path = os.path.join(output_dir, "faithfulness_detailed.jsonl")
     with open(detail_path, "w", encoding="utf-8") as f:
@@ -466,6 +508,11 @@ def save_faithfulness_results(results: list[FaithfulnessResult],
     summary_path = os.path.join(output_dir, "faithfulness_summary.json")
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
+    metadata_path = None
+    if metadata:
+        metadata_path = os.path.join(output_dir, "faithfulness_metadata.json")
+        with open(metadata_path, "w", encoding="utf-8") as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
     print(f"  -> 详细结果: {detail_path}", flush=True)
     print(f"  -> 汇总文件: {summary_path}", flush=True)
     print(f"\n  {'条件':<12} {'Overlap':>10} {'ROUGE-L':>10} {'Sem.Sim':>10} {'BERTScore':>10}", flush=True)

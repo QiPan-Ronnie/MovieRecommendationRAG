@@ -1,0 +1,19 @@
+{
+  "package": "phase5_with_recommendation_Retrieval_Only_final",
+  "sources": {
+    "main_package": "/root/autodl-tmp/github_codes/results/phase5_with_recommendation_Retrieval_Only_bertscore_unified",
+    "p500_package": "/root/autodl-tmp/github_codes/results/phase5_with_recommendation_Retrieval_Only_p500",
+    "stats_package": "/root/autodl-tmp/github_codes/results/phase5_stats"
+  },
+  "included_files": [
+    "main_summary.json",
+    "prompt_summary.json",
+    "perturbation_summary.json",
+    "significance_summary.md",
+    "significance_excerpt.json",
+    "logs/phase54_main.log",
+    "logs/phase53_p500.log",
+    "logs/phase54_p500.log"
+  ],
+  "notes": "Final packaged view: main comparison uses unified BERTScore results; perturbation uses the p500 follow-up; significance references the latest global stats package."
+}

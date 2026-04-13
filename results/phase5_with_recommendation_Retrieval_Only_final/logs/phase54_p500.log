@@ -1,0 +1,69 @@
+
+############################################################
+# Phase 5.4: Faithfulness Evaluation
+############################################################
+
+Evaluating perturbation experiments (E1-E4)...
+Attached reference evidence for 2000/2000 records (missing: 0)
+
+  ====================================================
+  [Phase 5.4] 开始: 2000 条记录  | 13:23:23
+  ====================================================
+
+  ----------------------------------------------------
+  [1/4] BERTScore  (roberta-large, device=cpu)
+  ----------------------------------------------------
+  BERTScore device: cuda
+  BERTScore model: /root/autodl-tmp/models/roberta-large
+  BERTScore rescale_with_baseline: False
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 8712.37it/s]
+  BERTScore:   0%|          | 0/8 [00:00<?, ?batch/s]  BERTScore:   0%|          | 0/8 [00:01<?, ?batch/s, avg_f1=0.8287, done=256/2000]  BERTScore:  12%|█▎        | 1/8 [00:01<00:11,  1.69s/batch, avg_f1=0.8287, done=256/2000]  BERTScore:  12%|█▎        | 1/8 [00:02<00:11,  1.69s/batch, avg_f1=0.8283, done=512/2000]  BERTScore:  25%|██▌       | 2/8 [00:02<00:08,  1.42s/batch, avg_f1=0.8283, done=512/2000]  BERTScore:  25%|██▌       | 2/8 [00:04<00:08,  1.42s/batch, avg_f1=0.8276, done=768/2000]  BERTScore:  38%|███▊      | 3/8 [00:04<00:06,  1.34s/batch, avg_f1=0.8276, done=768/2000]  BERTScore:  38%|███▊      | 3/8 [00:05<00:06,  1.34s/batch, avg_f1=0.8277, done=1024/2000]  BERTScore:  50%|█████     | 4/8 [00:05<00:05,  1.33s/batch, avg_f1=0.8277, done=1024/2000]  BERTScore:  50%|█████     | 4/8 [00:06<00:05,  1.33s/batch, avg_f1=0.8275, done=1280/2000]  BERTScore:  62%|██████▎   | 5/8 [00:06<00:03,  1.29s/batch, avg_f1=0.8275, done=1280/2000]  BERTScore:  62%|██████▎   | 5/8 [00:07<00:03,  1.29s/batch, avg_f1=0.8276, done=1536/2000]  BERTScore:  75%|███████▌  | 6/8 [00:07<00:02,  1.25s/batch, avg_f1=0.8276, done=1536/2000]  BERTScore:  75%|███████▌  | 6/8 [00:09<00:02,  1.25s/batch, avg_f1=0.8278, done=1792/2000]  BERTScore:  88%|████████▊ | 7/8 [00:09<00:01,  1.23s/batch, avg_f1=0.8278, done=1792/2000]  BERTScore:  88%|████████▊ | 7/8 [00:10<00:01,  1.23s/batch, avg_f1=0.8278, done=2000/2000]  BERTScore: 100%|██████████| 8/8 [00:10<00:00,  1.14s/batch, avg_f1=0.8278, done=2000/2000]  [??] 2000/2000 | avg_F1=0.8278 | ??: 0:00:10 | ETA: ~0:00:00  [13:23:38]
+  BERTScore: 100%|██████████| 8/8 [00:10<00:00,  1.25s/batch, avg_f1=0.8278, done=2000/2000]
+  [完成] 耗时 0m14s | 均值 F1 = 0.8278
+
+  ----------------------------------------------------
+  [2/4] Semantic Similarity  (all-MiniLM-L6-v2)
+  ----------------------------------------------------
+  ?? all-MiniLM-L6-v2 ...
+  ??????: /root/autodl-tmp/models/all-MiniLM-L6-v2 (device=cuda)
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 11835.33it/s]
+[1mBertModel LOAD REPORT[0m from: /root/autodl-tmp/models/all-MiniLM-L6-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+  ??????.
+  编码 2000 条 explanations ...
+Batches:   0%|          | 0/8 [00:00<?, ?it/s]Batches:  12%|█▎        | 1/8 [00:00<00:01,  5.01it/s]Batches:  38%|███▊      | 3/8 [00:00<00:00,  9.34it/s]Batches:  62%|██████▎   | 5/8 [00:00<00:00, 11.05it/s]Batches:  88%|████████▊ | 7/8 [00:00<00:00, 11.40it/s]Batches: 100%|██████████| 8/8 [00:00<00:00, 11.14it/s]
+  编码 14000 条 evidence texts ...
+Batches:   0%|          | 0/55 [00:00<?, ?it/s]Batches:   5%|▌         | 3/55 [00:00<00:01, 28.43it/s]Batches:  15%|█▍        | 8/55 [00:00<00:01, 37.81it/s]Batches:  24%|██▎       | 13/55 [00:00<00:01, 41.24it/s]Batches:  33%|███▎      | 18/55 [00:00<00:00, 44.19it/s]Batches:  42%|████▏     | 23/55 [00:00<00:00, 45.61it/s]Batches:  53%|█████▎    | 29/55 [00:00<00:00, 49.66it/s]Batches:  64%|██████▎   | 35/55 [00:00<00:00, 52.62it/s]Batches:  78%|███████▊  | 43/55 [00:00<00:00, 59.60it/s]Batches:  95%|█████████▍| 52/55 [00:00<00:00, 67.42it/s]Batches: 100%|██████████| 55/55 [00:00<00:00, 55.83it/s]
+  计算余弦相似度 ...
+  [完成] 耗时 0m02s | 均值 = 0.9044
+
+  ----------------------------------------------------
+  [3/4] Evidence Overlap + ROUGE-L
+  ----------------------------------------------------
+  Overlap+ROUGE:   0%|          | 0/2000 [00:00<?, ?rec/s]  Overlap+ROUGE:   3%|▎         | 61/2000 [00:00<00:03, 601.80rec/s]  Overlap+ROUGE:   6%|▌         | 124/2000 [00:00<00:03, 617.39rec/s]  Overlap+ROUGE:  10%|▉         | 193/2000 [00:00<00:02, 646.48rec/s]  Overlap+ROUGE:  13%|█▎        | 261/2000 [00:00<00:02, 658.85rec/s]  Overlap+ROUGE:  16%|█▋        | 327/2000 [00:00<00:02, 654.13rec/s]  Overlap+ROUGE:  20%|█▉        | 397/2000 [00:00<00:02, 665.82rec/s]  Overlap+ROUGE:  23%|██▎       | 464/2000 [00:00<00:02, 645.07rec/s]  Overlap+ROUGE:  26%|██▋       | 529/2000 [00:00<00:02, 629.97rec/s]  Overlap+ROUGE:  30%|██▉       | 595/2000 [00:00<00:02, 638.36rec/s]  Overlap+ROUGE:  33%|███▎      | 660/2000 [00:01<00:02, 639.54rec/s]  Overlap+ROUGE:  36%|███▋      | 725/2000 [00:01<00:02, 629.12rec/s]  Overlap+ROUGE:  39%|███▉      | 788/2000 [00:01<00:01, 628.88rec/s]  Overlap+ROUGE:  43%|████▎     | 851/2000 [00:01<00:01, 608.81rec/s]  Overlap+ROUGE:  46%|████▌     | 922/2000 [00:01<00:01, 637.08rec/s]  Overlap+ROUGE:  49%|████▉     | 986/2000 [00:01<00:01, 635.97rec/s]  Overlap+ROUGE:  53%|█████▎    | 1056/2000 [00:01<00:01, 653.51rec/s]  Overlap+ROUGE:  56%|█████▌    | 1122/2000 [00:01<00:01, 647.97rec/s]  Overlap+ROUGE:  59%|█████▉    | 1187/2000 [00:01<00:01, 639.95rec/s]  Overlap+ROUGE:  63%|██████▎   | 1252/2000 [00:01<00:01, 639.62rec/s]  Overlap+ROUGE:  66%|██████▌   | 1317/2000 [00:02<00:01, 624.48rec/s]  Overlap+ROUGE:  69%|██████▉   | 1385/2000 [00:02<00:00, 638.01rec/s]  Overlap+ROUGE:  72%|███████▎  | 1450/2000 [00:02<00:00, 640.18rec/s]  Overlap+ROUGE:  76%|███████▌  | 1515/2000 [00:02<00:00, 635.21rec/s]  Overlap+ROUGE:  79%|███████▉  | 1579/2000 [00:02<00:00, 626.71rec/s]  Overlap+ROUGE:  82%|████████▏ | 1642/2000 [00:02<00:00, 623.08rec/s]  Overlap+ROUGE:  85%|████████▌ | 1705/2000 [00:02<00:00, 621.94rec/s]  Overlap+ROUGE:  88%|████████▊ | 1768/2000 [00:02<00:00, 621.69rec/s]  Overlap+ROUGE:  92%|█████████▏| 1831/2000 [00:02<00:00, 623.09rec/s]  Overlap+ROUGE:  95%|█████████▍| 1896/2000 [00:02<00:00, 628.92rec/s]  Overlap+ROUGE:  98%|█████████▊| 1959/2000 [00:03<00:00, 617.55rec/s]  Overlap+ROUGE: 100%|██████████| 2000/2000 [00:03<00:00, 632.57rec/s]
+  [完成] 耗时 0m03s | Overlap=0.0994 | ROUGE-L=0.1523
+
+  ----------------------------------------------------
+  [4/4] 汇总结果
+  ----------------------------------------------------
+
+  指标                Overlap    ROUGE-L    Sem.Sim  BERTScore
+  ----------------------------------------------
+  (mean)             0.0994     0.1523     0.9044     0.8278
+
+  总耗时: 0m20s | 完成: 13:23:43
+
+  -> 详细结果: /root/autodl-tmp/MovieRecommendationRAG/results/phase5_with_recommendation_Retrieval_Only_p500/faithfulness_perturbation/faithfulness_detailed.jsonl
+  -> 汇总文件: /root/autodl-tmp/MovieRecommendationRAG/results/phase5_with_recommendation_Retrieval_Only_p500/faithfulness_perturbation/faithfulness_summary.json
+
+  条件              Overlap    ROUGE-L    Sem.Sim  BERTScore
+  ------------------------------------------------------
+  E1               0.1354     0.1780     0.8976     0.8359
+  E2               0.0979     0.1345     0.9107     0.8389
+  E3               0.1369     0.1776     0.8980     0.8355
+  E4               0.0274     0.1191     0.9115     0.8008

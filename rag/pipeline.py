@@ -49,6 +49,20 @@ def _normalize_id(value) -> int:
     return int(value)
 
 
+def _parse_optional_bool_arg(value: str) -> bool | None:
+    mapping = {
+        "auto": None,
+        "true": True,
+        "false": False,
+    }
+    try:
+        return mapping[value.lower()]
+    except KeyError as exc:
+        raise ValueError(
+            f"Expected one of {sorted(mapping)}, got {value!r}"
+        ) from exc
+
+
 def _load_kg_paths(paths_file: str = "data/kg/kg_paths_for_recommendations.json",
                    required: bool = False,
                    context: str = "") -> dict:
@@ -958,7 +972,8 @@ def run_phase_5_3(llm_backend: str = "huggingface",
 # Phase 5.4: Evaluate faithfulness
 # ---------------------------------------------------------------------------
 
-def run_phase_5_4(output_dir: str = "results"):
+def run_phase_5_4(output_dir: str = "results",
+                  bertscore_rescale_with_baseline: bool | None = None):
     """Evaluate faithfulness metrics for all generated explanations."""
     print("\n" + "#" * 60)
     print("# Phase 5.4: Faithfulness Evaluation")
@@ -982,11 +997,20 @@ def run_phase_5_4(output_dir: str = "results"):
                 records.append(r)
 
         _attach_reference_evidence(records, reference_path=reference_path)
-        results = evaluate_faithfulness(records)
+        results = evaluate_faithfulness(
+            records,
+            bertscore_rescale_with_baseline=bertscore_rescale_with_baseline,
+        )
         summary = aggregate_results(results)
         save_faithfulness_results(
             results, summary,
-            output_dir=os.path.join(output_dir, f"faithfulness_{mode}"))
+            output_dir=os.path.join(output_dir, f"faithfulness_{mode}"),
+            metadata={
+                "mode": mode,
+                "reference_path": reference_path,
+                "bertscore_rescale_with_baseline": bertscore_rescale_with_baseline,
+            },
+        )
 
     # Evaluate perturbation experiments
     perturb_path = os.path.join(output_dir, "perturbation_results.jsonl")
@@ -998,11 +1022,20 @@ def run_phase_5_4(output_dir: str = "results"):
                 records.append(json.loads(line))
 
         _attach_reference_evidence(records, reference_path=reference_path)
-        results = evaluate_faithfulness(records)
+        results = evaluate_faithfulness(
+            records,
+            bertscore_rescale_with_baseline=bertscore_rescale_with_baseline,
+        )
         summary = aggregate_results(results)
         save_faithfulness_results(
             results, summary,
-            output_dir=os.path.join(output_dir, "faithfulness_perturbation"))
+            output_dir=os.path.join(output_dir, "faithfulness_perturbation"),
+            metadata={
+                "mode": "perturbation",
+                "reference_path": reference_path,
+                "bertscore_rescale_with_baseline": bertscore_rescale_with_baseline,
+            },
+        )
     else:
         print(f"Skipping perturbation eval ({perturb_path} not found)")
 
@@ -1042,9 +1075,13 @@ def main():
     parser.add_argument("--evidence-mode", type=str, default="hybrid",
                         choices=["hybrid", "kg_only", "retrieval_only"],
                         help="Evidence source for the primary explanation mode")
+    parser.add_argument("--bertscore-rescale-with-baseline", type=str, default="auto",
+                        choices=["auto", "true", "false"],
+                        help="Explicit BERTScore rescale_with_baseline setting for phase 5.4")
     parser.add_argument("--output-dir", type=str, default="results",
                         help="Output directory for phase 5.3/5.4 results")
     args = parser.parse_args()
+    bertscore_rescale = _parse_optional_bool_arg(args.bertscore_rescale_with_baseline)
 
     if args.phase == "5.1":
         run_phase_5_1()
@@ -1068,7 +1105,10 @@ def main():
             output_dir=args.output_dir,
         )
     elif args.phase == "5.4":
-        run_phase_5_4(output_dir=args.output_dir)
+        run_phase_5_4(
+            output_dir=args.output_dir,
+            bertscore_rescale_with_baseline=bertscore_rescale,
+        )
     else:
         run_phase_5_1()
         run_phase_5_2(
@@ -1088,7 +1128,10 @@ def main():
             evidence_mode=args.evidence_mode,
             output_dir=args.output_dir,
         )
-        run_phase_5_4(output_dir=args.output_dir)
+        run_phase_5_4(
+            output_dir=args.output_dir,
+            bertscore_rescale_with_baseline=bertscore_rescale,
+        )
 
 
 if __name__ == "__main__":

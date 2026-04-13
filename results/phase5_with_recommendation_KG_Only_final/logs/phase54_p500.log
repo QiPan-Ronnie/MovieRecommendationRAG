@@ -1,0 +1,69 @@
+
+############################################################
+# Phase 5.4: Faithfulness Evaluation
+############################################################
+
+Evaluating perturbation experiments (E1-E4)...
+Attached reference evidence for 2000/2000 records (missing: 0)
+
+  ====================================================
+  [Phase 5.4] 开始: 2000 条记录  | 11:45:55
+  ====================================================
+
+  ----------------------------------------------------
+  [1/4] BERTScore  (roberta-large, device=cpu)
+  ----------------------------------------------------
+  BERTScore device: cuda
+  BERTScore model: /root/autodl-tmp/models/roberta-large
+  BERTScore rescale_with_baseline: False
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 11239.00it/s]
+  BERTScore:   0%|          | 0/8 [00:00<?, ?batch/s]  BERTScore:   0%|          | 0/8 [00:01<?, ?batch/s, avg_f1=0.8707, done=256/2000]  BERTScore:  12%|█▎        | 1/8 [00:01<00:10,  1.45s/batch, avg_f1=0.8707, done=256/2000]  BERTScore:  12%|█▎        | 1/8 [00:02<00:10,  1.45s/batch, avg_f1=0.8708, done=512/2000]  BERTScore:  25%|██▌       | 2/8 [00:02<00:07,  1.24s/batch, avg_f1=0.8708, done=512/2000]  BERTScore:  25%|██▌       | 2/8 [00:03<00:07,  1.24s/batch, avg_f1=0.8707, done=768/2000]  BERTScore:  38%|███▊      | 3/8 [00:03<00:05,  1.14s/batch, avg_f1=0.8707, done=768/2000]  BERTScore:  38%|███▊      | 3/8 [00:04<00:05,  1.14s/batch, avg_f1=0.8712, done=1024/2000]  BERTScore:  50%|█████     | 4/8 [00:04<00:04,  1.09s/batch, avg_f1=0.8712, done=1024/2000]  BERTScore:  50%|█████     | 4/8 [00:05<00:04,  1.09s/batch, avg_f1=0.8712, done=1280/2000]  BERTScore:  62%|██████▎   | 5/8 [00:05<00:03,  1.07s/batch, avg_f1=0.8712, done=1280/2000]  BERTScore:  62%|██████▎   | 5/8 [00:06<00:03,  1.07s/batch, avg_f1=0.8712, done=1536/2000]  BERTScore:  75%|███████▌  | 6/8 [00:06<00:02,  1.02s/batch, avg_f1=0.8712, done=1536/2000]  BERTScore:  75%|███████▌  | 6/8 [00:07<00:02,  1.02s/batch, avg_f1=0.8713, done=1792/2000]  BERTScore:  88%|████████▊ | 7/8 [00:07<00:00,  1.01batch/s, avg_f1=0.8713, done=1792/2000]  BERTScore:  88%|████████▊ | 7/8 [00:08<00:00,  1.01batch/s, avg_f1=0.8714, done=2000/2000]  BERTScore: 100%|██████████| 8/8 [00:08<00:00,  1.06batch/s, avg_f1=0.8714, done=2000/2000]  [??] 2000/2000 | avg_F1=0.8714 | ??: 0:00:08 | ETA: ~0:00:00  [11:46:08]
+  BERTScore: 100%|██████████| 8/8 [00:08<00:00,  1.04s/batch, avg_f1=0.8714, done=2000/2000]
+  [完成] 耗时 0m13s | 均值 F1 = 0.8714
+
+  ----------------------------------------------------
+  [2/4] Semantic Similarity  (all-MiniLM-L6-v2)
+  ----------------------------------------------------
+  ?? all-MiniLM-L6-v2 ...
+  ??????: /root/autodl-tmp/models/all-MiniLM-L6-v2 (device=cuda)
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 12204.11it/s]
+[1mBertModel LOAD REPORT[0m from: /root/autodl-tmp/models/all-MiniLM-L6-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+  ??????.
+  编码 2000 条 explanations ...
+Batches:   0%|          | 0/8 [00:00<?, ?it/s]Batches:  25%|██▌       | 2/8 [00:00<00:00, 11.54it/s]Batches:  50%|█████     | 4/8 [00:00<00:00, 12.65it/s]Batches:  75%|███████▌  | 6/8 [00:00<00:00, 13.74it/s]Batches: 100%|██████████| 8/8 [00:00<00:00, 15.26it/s]Batches: 100%|██████████| 8/8 [00:00<00:00, 14.28it/s]
+  编码 5500 条 evidence texts ...
+Batches:   0%|          | 0/22 [00:00<?, ?it/s]Batches:  14%|█▎        | 3/22 [00:00<00:00, 27.05it/s]Batches:  32%|███▏      | 7/22 [00:00<00:00, 30.04it/s]Batches:  50%|█████     | 11/22 [00:00<00:00, 33.86it/s]Batches:  73%|███████▎  | 16/22 [00:00<00:00, 38.86it/s]Batches: 100%|██████████| 22/22 [00:00<00:00, 40.71it/s]
+  计算余弦相似度 ...
+  [完成] 耗时 0m01s | 均值 = 0.9460
+
+  ----------------------------------------------------
+  [3/4] Evidence Overlap + ROUGE-L
+  ----------------------------------------------------
+  Overlap+ROUGE:   0%|          | 0/2000 [00:00<?, ?rec/s]  Overlap+ROUGE:   7%|▋         | 141/2000 [00:00<00:01, 1402.23rec/s]  Overlap+ROUGE:  14%|█▍        | 285/2000 [00:00<00:01, 1423.55rec/s]  Overlap+ROUGE:  22%|██▏       | 433/2000 [00:00<00:01, 1439.80rec/s]  Overlap+ROUGE:  29%|██▉       | 577/2000 [00:00<00:01, 1339.29rec/s]  Overlap+ROUGE:  36%|███▌      | 712/2000 [00:00<00:00, 1329.01rec/s]  Overlap+ROUGE:  43%|████▎     | 854/2000 [00:00<00:00, 1356.98rec/s]  Overlap+ROUGE:  50%|████▉     | 991/2000 [00:00<00:00, 1343.72rec/s]  Overlap+ROUGE:  57%|█████▋    | 1137/2000 [00:00<00:00, 1378.65rec/s]  Overlap+ROUGE:  64%|██████▍   | 1276/2000 [00:00<00:00, 1370.65rec/s]  Overlap+ROUGE:  71%|███████▏  | 1428/2000 [00:01<00:00, 1414.64rec/s]  Overlap+ROUGE:  79%|███████▉  | 1576/2000 [00:01<00:00, 1431.27rec/s]  Overlap+ROUGE:  86%|████████▌ | 1720/2000 [00:01<00:00, 1428.21rec/s]  Overlap+ROUGE:  94%|█████████▎| 1874/2000 [00:01<00:00, 1459.56rec/s]  Overlap+ROUGE: 100%|██████████| 2000/2000 [00:01<00:00, 1400.18rec/s]
+  [完成] 耗时 0m01s | Overlap=0.1619 | ROUGE-L=0.1766
+
+  ----------------------------------------------------
+  [4/4] 汇总结果
+  ----------------------------------------------------
+
+  指标                Overlap    ROUGE-L    Sem.Sim  BERTScore
+  ----------------------------------------------
+  (mean)             0.1619     0.1766     0.9460     0.8714
+
+  总耗时: 0m16s | 完成: 11:46:11
+
+  -> 详细结果: /root/autodl-tmp/MovieRecommendationRAG/results/phase5_with_recommendation_KG_Only_p500/faithfulness_perturbation/faithfulness_detailed.jsonl
+  -> 汇总文件: /root/autodl-tmp/MovieRecommendationRAG/results/phase5_with_recommendation_KG_Only_p500/faithfulness_perturbation/faithfulness_summary.json
+
+  条件              Overlap    ROUGE-L    Sem.Sim  BERTScore
+  ------------------------------------------------------
+  E1               0.1984     0.2125     0.9458     0.8833
+  E2               0.1928     0.1929     0.9551     0.8869
+  E3               0.1921     0.1977     0.9461     0.8797
+  E4               0.0642     0.1032     0.9372     0.8357

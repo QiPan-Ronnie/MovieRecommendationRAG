@@ -1,0 +1,30 @@
+{
+  "E1": {
+    "count": 500,
+    "evidence_overlap": 0.1984,
+    "rouge_l": 0.2125,
+    "semantic_sim": 0.9458,
+    "bert_score_f1": 0.8833
+  },
+  "E2": {
+    "count": 500,
+    "evidence_overlap": 0.1928,
+    "rouge_l": 0.1929,
+    "semantic_sim": 0.9551,
+    "bert_score_f1": 0.8869
+  },
+  "E3": {
+    "count": 500,
+    "evidence_overlap": 0.1921,
+    "rouge_l": 0.1977,
+    "semantic_sim": 0.9461,
+    "bert_score_f1": 0.8797
+  },
+  "E4": {
+    "count": 500,
+    "evidence_overlap": 0.0642,
+    "rouge_l": 0.1032,
+    "semantic_sim": 0.9372,
+    "bert_score_f1": 0.8357
+  }
+}
