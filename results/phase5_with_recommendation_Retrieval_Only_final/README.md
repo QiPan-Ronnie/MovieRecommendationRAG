@@ -23,10 +23,9 @@ This final view combines:
 | E3 | 500 | 0.1369 | 0.1776 | 0.8980 | 0.8355 |
 | E4 | 500 | 0.0274 | 0.1191 | 0.9115 | 0.8008 |
 
-## Provenance
+## Notes
 
-- Main comparison source: `/root/autodl-tmp/github_codes/results/phase5_with_recommendation_Retrieval_Only_bertscore_unified`
-- Perturbation source: `/root/autodl-tmp/github_codes/results/phase5_with_recommendation_Retrieval_Only_p500`
-- Significance source: `/root/autodl-tmp/github_codes/results/phase5_stats`
-
-Read `significance_summary.md` for the full statistical report and `significance_excerpt.json` for the subset most relevant to this experiment line.
+This package should be read as the canonical **Retrieval-only RAG** baseline for Phase 2.
+- `main_summary.json` reports the unified-BERTScore main comparison.
+- `perturbation_summary.json` reports the larger `p500` perturbation follow-up.
+- `significance_summary.md` and `significance_excerpt.json` summarize the paired statistical comparisons most relevant to this experiment line.

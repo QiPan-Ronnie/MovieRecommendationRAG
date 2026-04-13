@@ -35,9 +35,9 @@ A two-stage movie recommendation system on MovieLens 1M that combines **KG-enhan
 | KG-only | 59481 | 0.2007 | 0.2112 | 0.9452 | 0.8835 |
 | Prompt-only (KG companion) | 59481 | 0.0441 | 0.1063 | 0.9695 | 0.8279 |
 
-- **Hybrid KG+RAG** is strongest on the most direct grounding indicators (`Overlap`, `ROUGE-L`), supporting the claim that structured KG evidence and textual retrieval are complementary.
-- **KG-only** is also very strong, and leads on `Sem.Sim` / `BERTScore`, showing that KG paths alone provide highly informative and semantically coherent explanation evidence.
-- Paired significance testing under `results/phase5_stats/` confirms the main Hybrid-vs-Retrieval improvements are statistically significant, while `KG-only` also significantly outperforms `Retrieval-only` on the primary grounding metrics.
+- **Hybrid KG+RAG** is strongest on the most direct grounding indicators (`Overlap`, `ROUGE-L`), supporting the claim that structured KG evidence and textual retrieval are complementary. Relative to `Retrieval-only`, Hybrid improves overlap by **+0.0572** and ROUGE-L by **+0.0671**, while keeping BERTScore competitive.
+- **KG-only** is also very strong, and leads on `Sem.Sim` / `BERTScore`, showing that KG paths alone provide highly informative and semantically coherent explanation evidence. It also clearly outperforms `Retrieval-only` on overlap- and ROUGE-based grounding metrics.
+- Paired significance testing under `results/phase5_stats/` confirms the main Hybrid-vs-Retrieval and KG-vs-Retrieval improvements are statistically significant, which makes the overall comparison more reliable than reporting raw averages alone.
 
 ### Phase 2: Perturbation Follow-up (`p500`)
 
@@ -47,16 +47,11 @@ A two-stage movie recommendation system on MovieLens 1M that combines **KG-enhan
 | Retrieval-only RAG | 0.1354 | 0.0274 | 0.1780 | 0.1191 | 0.8359 | 0.8008 |
 | KG-only | 0.1984 | 0.0642 | 0.2125 | 0.1032 | 0.8833 | 0.8357 |
 
-Across all three evidence-grounded settings, replacing relevant evidence with irrelevant evidence (`E4`) causes sharp degradation, reinforcing that the model is reacting to evidence quality rather than only generating generic recommendation language.
+Across all three evidence-grounded settings, replacing relevant evidence with irrelevant evidence (`E4`) causes sharp degradation, reinforcing that the model is reacting to evidence quality rather than only generating generic recommendation language. The enlarged `p500` follow-up also makes the perturbation story more stable: evidence relevance matters much more than evidence order, while Hybrid and KG-only both remain clearly sensitive to irrelevant substitutions.
 
-See [`results/RESULTS.md`](results/RESULTS.md) for Phase 1 details, [`results/PHASE5_EXPERIMENTS_INDEX.md`](results/PHASE5_EXPERIMENTS_INDEX.md) for packaged Phase 5 artifacts, and [`results/phase5_stats/significance_summary.md`](results/phase5_stats/significance_summary.md) for the latest statistical comparison report.
+Taken together, the Phase 2 results support a consistent picture: `retrieval-only RAG`, `KG-only`, and `hybrid KG+RAG` all outperform their prompt-only counterparts, while `hybrid KG+RAG` achieves the strongest grounding on overlap- and ROUGE-based metrics. At the same time, `KG-only` remains highly competitive and achieves the best semantic-similarity and BERTScore values, indicating that structured KG evidence is already very informative on its own. Overall, the findings suggest that structured KG paths and textual retrieval provide complementary signals for faithful explanation generation, with Hybrid offering the best overall grounding trade-off and KG-only providing a strong structured baseline.
 
-For the cleanest packaged view of the final Phase 2 results, start from:
-- [`results/phase5_with_recommendation_Hybrid_final/`](results/phase5_with_recommendation_Hybrid_final)
-- [`results/phase5_with_recommendation_Retrieval_Only_final/`](results/phase5_with_recommendation_Retrieval_Only_final)
-- [`results/phase5_with_recommendation_KG_Only_final/`](results/phase5_with_recommendation_KG_Only_final)
-
-Older intermediate result packages are preserved locally under `results/_archive_legacy/` and ignored by Git so the main repository view stays focused on the final packages.
+See [`results/RESULTS.md`](results/RESULTS.md) for Phase 1 details, [`results/PHASE5_EXPERIMENTS_INDEX.md`](results/PHASE5_EXPERIMENTS_INDEX.md) for the organized Phase 5 result layout, and [`results/phase5_stats/significance_summary.md`](results/phase5_stats/significance_summary.md) for the latest statistical comparison report.
 
 ## Setup
 
@@ -173,9 +168,6 @@ MovieRecommendation/
 |- rag/                                 # Phase 5 retrieval / generation / evaluation code
 |- analysis/                            # Significance testing and follow-up analysis
 |- scripts/                             # Reusable Phase 5 run scripts
-|- tests/test_phase5_modes.py
-|- tests/test_faithfulness_config.py
-|- tests/test_phase5_significance.py
 |- results/
 |  |- RESULTS.md
 |  |- PHASE5_EXPERIMENTS_INDEX.md
@@ -183,8 +175,8 @@ MovieRecommendation/
 |  |- phase5_with_recommendation_Retrieval_Only_final/
 |  |- phase5_with_recommendation_KG_Only_final/
 |  |- phase5_stats/
-|  |- results_from_kg/
-|  `- _archive_legacy/                  # local-only archived intermediate packages (git-ignored)
+|  |- recommendations_v2.csv
+|  `- recommendations_v4.csv
 |- run_all.py
 |- export_phase1_for_rag.py
 `- requirements.txt
